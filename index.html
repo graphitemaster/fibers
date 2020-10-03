@@ -1,0 +1,1515 @@
+<!DOCTYPE html>
+<html lang="en" dir=>
+
+<head>
+  <meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="description" content="Fibers, Oh My! #  Written by Dale Weiler, last updated Oct 3rd, 2020
+  Twitter  GitHub  It&rsquo;s been brought to the attention of many people in the game development industry that you can use fibers to parallelize your engines and games. This one presentation in particular: Parallelizing the Naughty Dog engine using fibers has been a talking point since it came out in 2015. However, it doesn&rsquo;t quite go into the details enough to really explain why fibers are a good fit or how to actually implement them.">
+<meta name="theme-color" content="#FFFFFF"><meta property="og:title" content="Introduction" />
+<meta property="og:description" content="Fibers, Oh My! #  Written by Dale Weiler, last updated Oct 3rd, 2020
+  Twitter  GitHub  It&rsquo;s been brought to the attention of many people in the game development industry that you can use fibers to parallelize your engines and games. This one presentation in particular: Parallelizing the Naughty Dog engine using fibers has been a talking point since it came out in 2015. However, it doesn&rsquo;t quite go into the details enough to really explain why fibers are a good fit or how to actually implement them." />
+<meta property="og:type" content="article" />
+<meta property="og:url" content="http://example.org/" />
+<meta property="article:published_time" content="2020-10-03T13:15:07-04:00" />
+<meta property="article:modified_time" content="2020-10-03T13:15:07-04:00" />
+<title>Introduction | </title>
+<link rel="manifest" href="/manifest.json">
+<link rel="icon" href="/favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="/book.min.66ecc3685969d1a95cdc51591e326332fae0b92cd5511935c2026b684ba33d77.css" integrity="sha256-ZuzDaFlp0alc3FFZHjJjMvrguSzVURk1wgJraEujPXc="><!--
+Made with Book Theme
+https://github.com/alex-shpak/hugo-book
+-->
+
+  
+</head>
+
+<body dir=>
+  <input type="checkbox" class="hidden toggle" id="menu-control" />
+  <input type="checkbox" class="hidden toggle" id="toc-control" />
+  <main class="container flex">
+    <aside class="book-menu">
+      
+  <nav>
+<h2 class="book-brand">
+  <a href="/"><span></span>
+  </a>
+</h2>
+
+
+
+
+
+
+
+
+
+
+
+
+  
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+</nav>
+
+
+
+
+  <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
+
+
+ 
+    </aside>
+
+    <div class="book-page">
+      <header class="book-header">
+        
+  <div class="flex align-center justify-between">
+  <label for="menu-control">
+    <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
+  </label>
+
+  <strong>Introduction</strong>
+
+  <label for="toc-control">
+    
+    <img src="/svg/toc.svg" class="book-icon" alt="Table of Contents" />
+    
+  </label>
+</div>
+
+
+  
+  <aside class="hidden clearfix">
+    
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#disambiguation-of-terms">Disambiguation of terms.</a></li>
+    <li><a href="#what-are-fibers">What are fibers?</a></li>
+    <li><a href="#scheduling">Scheduling</a>
+      <ul>
+        <li><a href="#premptive-scheduling">Premptive scheduling</a></li>
+        <li><a href="#cooperative-scheduling">Cooperative scheduling</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-problem-with-multi-threading">The problem with multi-threading</a>
+      <ul>
+        <li><a href="#n1-and-what-it-means">N:1 and what it means</a></li>
+        <li><a href="#mn-and-what-it-means">M:N and what it means</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-problem-with-thread-pools">The problem with thread pools</a>
+      <ul>
+        <li><a href="#locality-of-reference">Locality of reference</a></li>
+        <li><a href="#nested-induced-deadlocks">Nested induced deadlocks</a></li>
+      </ul>
+    </li>
+    <li><a href="#what-mn-fibers-will-solve">What M:N fibers will solve</a></li>
+    <li><a href="#what-mn-fibers-will-not-solve">What M:N fibers will not solve</a></li>
+    <li><a href="#how-not-to-implement-mn-fibers">How not to implement M:N fibers</a>
+      <ul>
+        <li><a href="#avoid-os-fiber-primitives">Avoid OS fiber primitives</a></li>
+      </ul>
+    </li>
+    <li><a href="#user-space-context-switching">User space context switching</a>
+      <ul>
+        <li><a href="#getting-the-context">Getting the context</a></li>
+        <li><a href="#setting-the-context">Setting the context</a></li>
+        <li><a href="#example-of-use">Example of use</a></li>
+        <li><a href="#making-a-context">Making a context</a></li>
+        <li><a href="#swapping-contexts">Swapping contexts</a></li>
+        <li><a href="#windows">Windows</a></li>
+        <li><a href="#integrating-into-your-build">Integrating into your build</a></li>
+      </ul>
+    </li>
+    <li><a href="#considerations">Considerations</a>
+      <ul>
+        <li><a href="#barriers">Barriers</a></li>
+        <li><a href="#debuggers">Debuggers</a></li>
+        <li><a href="#signals">Signals</a></li>
+        <li><a href="#blocking-in-the-os">Blocking in the OS</a></li>
+        <li><a href="#thread-local-storage">Thread Local Storage</a></li>
+      </ul>
+    </li>
+    <li><a href="#implementing-mn-fibers">Implementing M:N fibers</a>
+      <ul>
+        <li><a href="#stack-allocator">Stack allocator</a></li>
+        <li><a href="#syncronization-primitives">Syncronization Primitives</a></li>
+        <li><a href="#fiber-local-storage">Fiber Local Storage</a></li>
+        <li><a href="#reactor">Reactor</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+
+  </aside>
+  
+ 
+      </header>
+
+      
+      
+  <article class="markdown"><h1 id="fibers-oh-my">
+  Fibers, Oh My!
+  <a class="anchor" href="#fibers-oh-my">#</a>
+</h1>
+<p>Written by Dale Weiler, last updated Oct 3rd, 2020</p>
+<ul>
+<li>
+  <a href="https://twitter.com/actualGraphite">Twitter</a></li>
+<li>
+  <a href="https://github.com/graphitemaster">GitHub</a></li>
+</ul>
+<p>It&rsquo;s been brought to the attention of many people in the game development industry that you can use fibers to parallelize your engines and games. This one presentation in particular: 
+  <a href="http://twvideo01.ubm-us.net/o1/vault/gdc2015/presentations/Gyrling_Christian_Parallelizing_The_Naughty.pdf">Parallelizing the Naughty Dog engine using fibers</a> has been a talking point since it came out in 2015. However, it doesn&rsquo;t quite go into the details enough to really explain why fibers are a good fit or how to actually implement them. In my pursuit to educate myself and take a stab at implementing them, I&rsquo;ve concluded that there&rsquo;s a distinctive lack of good information online. In response to the lack of literature on this topic, I&rsquo;ve decided to explain it from multiple angles, and provide less known information on the subject. This document serves as a 
+  <a href="https://en.wikipedia.org/wiki/Sourcebook">Sourcebook</a> for those who really want to determine if it&rsquo;s a right fit for them and how to go about actually doing it.</p>
+<h2 id="disambiguation-of-terms">
+  Disambiguation of terms.
+  <a class="anchor" href="#disambiguation-of-terms">#</a>
+</h2>
+<p>Before we get started I want to define three distinctive terms.</p>
+<ul>
+<li>OS-thread (the thread given to us by the OS)</li>
+<li>Hardware-thread (the actual physical thread on a CPU)</li>
+<li>Fiber-thread (the thread of execution that is our fiber)</li>
+</ul>
+<h2 id="what-are-fibers">
+  What are fibers?
+  <a class="anchor" href="#what-are-fibers">#</a>
+</h2>
+<p>Fibers are a lightweight thread of execution similar to OS threads. However, unlike OS threads, they&rsquo;re cooperatively scheduled as opposed to preemptively scheduled. What this means in plain English is that fibers <em>yield</em> themselves to allow another fiber to run. You may have used something similar to this in your programming language of choice where it&rsquo;s typically called a <em>coroutine</em>, there&rsquo;s no real distinction between coroutines and fibers other than that coroutines are usually a language-level construct, while fibers tend to be a systems-level concept.</p>
+<p>Other names for fibers you may have heard before include:</p>
+<ul>
+<li>green threads</li>
+<li>user-space threads</li>
+<li>coroutines</li>
+<li>tasklets</li>
+<li>microthreads</li>
+</ul>
+<p>There are very few and minor differences between fibers and the above list. For the purposes of this document, we should consider them equivlant as the distinctions don&rsquo;t quite matter.</p>
+<h2 id="scheduling">
+  Scheduling
+  <a class="anchor" href="#scheduling">#</a>
+</h2>
+<p>At any given moment the OS is running multiple processes all with their own OS threads. All of those OS threads need to be making forward progress. There&rsquo;s two classes of thought when it comes to how you solve this problem.</p>
+<ul>
+<li>
+  <a href="https://en.wikipedia.org/wiki/Cooperative_multitasking">Cooperative scheduling</a></li>
+<li>
+  <a href="https://en.wikipedia.org/wiki/Preemption_%28computing%29">Preemptive scheduling</a></li>
+</ul>
+<p>It&rsquo;s important to note that while you may observe that all processes and OS threads are running in parallel, scheduling is really providing the <em>illusion</em> of that. Not all threads are running in parallel, the scheduler is just switching between them quickly enough that it appears everything is running in parallel. That is they&rsquo;re <em>concurrent</em>. Threads start, run, and complete in an <em>interleaved</em> fashion.</p>
+<blockquote>
+<p>It is possible for multiple OS threads to be running in parallel with 
+  <a href="https://en.wikipedia.org/wiki/Symmetric_multiprocessing">symmetric multiprocessing</a> (SMP) where they&rsquo;re mapped to multiple hardware threads, but only as many hardware threads as the CPU physically has.</p>
+</blockquote>
+<h3 id="premptive-scheduling">
+  Premptive scheduling
+  <a class="anchor" href="#premptive-scheduling">#</a>
+</h3>
+<p>Most people familiar with threads know that you don&rsquo;t have to <strong>yield</strong> to other threads to allow them to run. This is because most operating systems (OS) schedule threads <strong>preemptively</strong>.</p>
+<p>The points at which the OS may decide to preempt a thread include:</p>
+<ul>
+<li>IO</li>
+<li>sleeps</li>
+<li>waits (seen in locking primitives)</li>
+<li>interrupts (hardware events mostly)</li>
+</ul>
+<p>The first three in particular are often expressed by an application as a 
+  <a href="https://en.wikipedia.org/wiki/System_call">system call</a>. These system calls cause the CPU to cease executing the current code and execute the OS&rsquo;s code registered for that system call. This allows the OS to service the request then resume execution of your application&rsquo;s calling thread, or another thread entierly.</p>
+<p>This is possible because the OS will decide at one of the points listed above to save all the relevant state of that thread then resume some other thread, the idea being that when this thread can run again, the OS can reinstate that thread and continue executing it like nothing ever happened. These transition points where the OS switches a thread are called 
+  <a href="https://en.wikipedia.org/wiki/Context_switch">context switches</a>.</p>
+<p>There&rsquo;s a cost associated with this context switching and all modern operating systems have made great deals of effort to reduce this cost as much as possible. Unfortunately, that overhead begins to show itself when you have <em>a lot</em> of threads. In addition, recent cache 
+  <a href="https://en.wikipedia.org/wiki/Side-channel_attack">side channel attacks</a> like: 
+  <a href="https://en.wikipedia.org/wiki/Spectre_%28security_vulnerability%29">Spectre</a>, 
+  <a href="https://en.wikipedia.org/wiki/Meltdown_%28security_vulnerability%29">Meltdown</a>, 
+  <a href="https://en.wikipedia.org/wiki/Spoiler_%28security_vulnerability%29">Spoiler</a>, 
+  <a href="https://en.wikipedia.org/wiki/Foreshadow_%28security_vulnerability%29">Foreshadow</a>, and 
+  <a href="https://en.wikipedia.org/wiki/Microarchitectural_Data_Sampling">Microarchitectural Data Sampling</a> on modern processors has led to a series of both user-space and kernel-space mitigation strategies, some of which increased the overhead of context switches significantly.</p>
+<blockquote>
+<p>You can read more about context switching overhead in 
+  <a href="https://www.usenix.org/legacy/events/expcs07/papers/2-li.pdf">this paper</a>.</p>
+</blockquote>
+<h3 id="cooperative-scheduling">
+  Cooperative scheduling
+  <a class="anchor" href="#cooperative-scheduling">#</a>
+</h3>
+<p>This idea of fibers yielding to each other is what is known as cooperative scheduling. Fibers effectively move the idea of context switching from kernel-space to user-space and then make those switches a fundamental part of computation, that is, they&rsquo;re a deliberate and explicitly done thing, by the fibers themselves. The benefit of this is that a lot of the previously mentioned overhead can be entierly eliminated while still permitting an excess count of threads of execution, just in the form of these fibers now.</p>
+<h2 id="the-problem-with-multi-threading">
+  The problem with multi-threading
+  <a class="anchor" href="#the-problem-with-multi-threading">#</a>
+</h2>
+<p>There&rsquo;s many problems related to multi-threading, most obviously that it&rsquo;s difficult to get right. Most proponents of fibers make false claims about how this problem goes away when you use fibers because you don&rsquo;t have parallel threads of execution. Instead, you have these cooperatively scheduled fibers which yield to each other. This means it&rsquo;s not possible to 
+  <a href="https://en.wikipedia.org/wiki/Race_condition">race data</a>, 
+  <a href="https://en.wikipedia.org/wiki/Deadlock">dead lock</a>, 
+  <a href="https://en.wikipedia.org/wiki/Deadlock#Livelock">live lock</a>, etc. While this statement is true when you look at fibers as a M:1 proposition, the story is entierly different when you introduce M:N.</p>
+<h3 id="n1-and-what-it-means">
+  N:1 and what it means
+  <a class="anchor" href="#n1-and-what-it-means">#</a>
+</h3>
+<p>Most documentation, libraries, and tutorials on fibers are almost exclusively based around using a single thread given to you by the OS, then sharing it among multiple fibers that cooperatively yield and run all your asynchronous code. This is called N:1 (&ldquo;N to one&rdquo;). <code>N</code> fibers to <code>1</code> thread, and it&rsquo;s the most prevalent form of fibers. This is how Lua coroutines work, how Javascript&rsquo;s and Python&rsquo;s async/await work, and it&rsquo;s <strong>not what you&rsquo;re interested in</strong> doing if you actually want to take advantage of hardware threads. What you&rsquo;re interested in is M:N, (&ldquo;M to N&rdquo;) <code>M</code> fibers to <code>N</code> threads.</p>
+<h3 id="mn-and-what-it-means">
+  M:N and what it means
+  <a class="anchor" href="#mn-and-what-it-means">#</a>
+</h3>
+<p>The idea behind M:N is to take the model given to us by M:1 and map it to multiple actual OS threads. Just like we&rsquo;re familiar to the concept of thread pools where we execute tasks, here we have a pool of threads where we execute fibers and those fibers get to yield more of themselves on that thread.</p>
+<blockquote>
+<p>I should stress that M:N fibers have all the usual problems of multi-threading. You still need to syncronize access to resources shared between multiple fibers because there&rsquo;s still multiple threads.</p>
+</blockquote>
+<h2 id="the-problem-with-thread-pools">
+  The problem with thread pools
+  <a class="anchor" href="#the-problem-with-thread-pools">#</a>
+</h2>
+<p>A lot of you may be wondering how this is different from traditional task based parallelism choices seen in many game engines and applications. The model where you have a fixed-size pool of threads you queue tasks on to be executed at some point in the future by one of those threads.</p>
+<h3 id="locality-of-reference">
+  Locality of reference
+  <a class="anchor" href="#locality-of-reference">#</a>
+</h3>
+<p>The first problem is <em>locality of reference</em>. The data-oriented / cache-aware programmers reading this will have to mind my overloading of that phrase because what I&rsquo;m really talking about is the resources that a job needs access to are usually local. The job isn&rsquo;t going to be executed immediately, but rather when the thread pool has a chance to. Any resource that job needs access to, needs to be available for the job at some point in the future. This means local values need their lifetime&rsquo;s extended for an undefined amount of time.</p>
+<p>There&rsquo;s many ways to solve this lifetime problem, except they all have overhead. Consider this trivial example where I want to asynchronously upload a local file to a webserver</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">upload_file</span>(<span style="color:#66d9ef">const</span> String<span style="color:#f92672">&amp;</span> filename) {
+  thread_pool<span style="color:#f92672">-&gt;</span>add_job([<span style="color:#f92672">&amp;</span>] {
+    <span style="color:#66d9ef">auto</span> file <span style="color:#f92672">=</span> open_file(filename);
+    <span style="color:#66d9ef">auto</span> data <span style="color:#f92672">=</span> read_file(file);
+    post_binary_data(data);
+  });
+}
+</code></pre></div><p>Do you see the bug?</p>
+<p>The issue is that the string passed to <code>upload_file</code>, i.e the local <code>filename</code>, only has a lifetime of the body of the function. When this function returns, <code>filename</code> no longer is a valid string. However, at some point this lambda function will be executed and try to access <code>filename</code> in it&rsquo;s local context and it&rsquo;ll be a dangling reference by then.</p>
+<p>What you could do is <strong>copy</strong> the string. The copy will then have the lifetime of the lambda. However, if we had a much larger resource to share with this job that couldn&rsquo;t be as cheaply copied, we would have to use something like a <strong>reference count</strong> instead. As you can see, the solutions to the resource problem involve a great deal of overhead in many cases and requires you to really think and reason about lifetimes here when you didn&rsquo;t have to, nor should you have to.</p>
+<p>We&rsquo;re experiencing a lot of friction here already and it&rsquo;s only a few lines of code. My personal rule of thumb is if you find yourself experiencing friction like this, it&rsquo;s usually indicative of bad design and the problem needs to be rethought.</p>
+<h3 id="nested-induced-deadlocks">
+  Nested induced deadlocks
+  <a class="anchor" href="#nested-induced-deadlocks">#</a>
+</h3>
+<p>The other significant problem with thread pools is what I call <em>nested induced deadlocks</em>. No matter how you slice and dice it, jobs are going to want to schedule other jobs and need the result before they themselves can continue.</p>
+<p>Let me set up a real world example because it&rsquo;s easier to understand with something concrete. Since this is primarily focused for game developers, I&rsquo;ll use a familiar example.</p>
+<h4 id="the-setup">
+  The setup
+  <a class="anchor" href="#the-setup">#</a>
+</h4>
+<p>I want to multi-thread the loading of game levels for faster loading. A level can have multiple models. A model can have multiple meshes. A mesh can have multiple materials. Materials can have multiple textures. Here&rsquo;s some example code for how I might go about doing that:</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp">Texture <span style="color:#a6e22e">load_texture</span>(<span style="color:#66d9ef">const</span> TextureDesc<span style="color:#f92672">&amp;</span> filename); <span style="color:#75715e">// exposition-only
+</span><span style="color:#75715e"></span>Material <span style="color:#a6e22e">load_material</span>(<span style="color:#66d9ef">const</span> MaterialDesc<span style="color:#f92672">&amp;</span> material) {
+  Vector<span style="color:#f92672">&lt;</span>Job<span style="color:#f92672">&gt;</span> jobs;
+  Material result(material.name);
+  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> texture : material.textures) {
+    Job id <span style="color:#f92672">=</span> thread_pool<span style="color:#f92672">-&gt;</span>add_job([<span style="color:#f92672">&amp;</span>] {
+      result.textures.push_back(load_texture(texture.desc));
+    });
+    jobs.push_back(id);
+  }
+  wait_for_all_jobs(jobs);
+  <span style="color:#66d9ef">return</span> result;
+}
+
+Mesh <span style="color:#a6e22e">load_mesh</span>(<span style="color:#66d9ef">const</span> MeshDesc<span style="color:#f92672">&amp;</span> mesh) {
+  Vector<span style="color:#f92672">&lt;</span>Job<span style="color:#f92672">&gt;</span> jobs;
+  Mesh result(mesh.name);
+  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> material : mesh.materials) {
+    Job id <span style="color:#f92672">=</span> thread_pool<span style="color:#f92672">-&gt;</span>add_job([<span style="color:#f92672">&amp;</span>]{
+      result.materials.push_back(load_material(material.desc));
+    });
+    jobs.push_back(id);
+  }
+  wait_for_all_jobs(jobs);
+  <span style="color:#66d9ef">return</span> result;
+}
+
+Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">const</span> ModelDesc<span style="color:#f92672">&amp;</span> model) {
+  Vector<span style="color:#f92672">&lt;</span>Job<span style="color:#f92672">&gt;</span> jobs;
+  Model result(model.name);
+  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> mesh : model.meshes) {
+    Job id <span style="color:#f92672">=</span> thread_pool<span style="color:#f92672">-&gt;</span>add_job([<span style="color:#f92672">&amp;</span>]{
+      result.meshes.push_back(load_mesh(mesh.desc));
+    });
+    jobs.push_back(id);
+  }
+  wait_for_all_jobs(jobs);
+  <span style="color:#66d9ef">return</span> result;
+}
+
+<span style="color:#66d9ef">void</span> <span style="color:#a6e22e">load_level</span>() {
+  read_metadata();
+  <span style="color:#66d9ef">for</span> (<span style="color:#66d9ef">const</span> <span style="color:#66d9ef">auto</span><span style="color:#f92672">&amp;</span> model : metadata.models) {
+    models.push_back(load_model(model.desc));
+  }
+}
+</code></pre></div><blockquote>
+<p>The loading of models jobifies the loading of all the meshes. The loading of meshes jobifies the loading of all the materials. The loading of materials jobifies the loading of all textures. It&rsquo;s pretty straight-forward. This completely saturates all threads of execution.</p>
+</blockquote>
+<blockquote>
+<p>Note that in this case <strong>loading</strong> conflates reading, decoding, optimizing, and uploading to the GPU. Nearly all of these operations, with the exception of IO, are compute bound problems which are easily parallelizable.</p>
+</blockquote>
+
+    </div>
+  </label>
+</div>
+
+<h4 id="the-deadlock">
+  The deadlock
+  <a class="anchor" href="#the-deadlock">#</a>
+</h4>
+<p>The problem with this code is that for a given thread pool of <code>N</code> threads, if all <code>N</code> of those threads end up in a <code>wait_for_all_jobs</code>, they&rsquo;ll never make forward progress and the entire thread pool will deadlock.</p>
+<p>There&rsquo;s many ways to avoid this situation, but the most obvious and easiest is to remove the waits. It&rsquo;s true there are ways to restructure this to remove the waits and make this work but it has some problems which I want to outline:</p>
+<p>If we remove the waits, the locals captured by the lambdas are no longer valid when the job runs. The reason we can access them at all in this current example is because <code>wait_for_all_jobs</code> prevents the function from returning, keeping the lifetime of the locals alive.</p>
+<p>I want to stress that to avoid the problem above, the code is going to take on a very different form. In my personal experience, all of the following occur when trying to solve the above problem:</p>
+<ul>
+<li>Code organization will suffer.</li>
+<li>Violation of SoC (separation of concerns.)</li>
+<li>Code duplication to permit the use of the fuctions outside of level loading.</li>
+<li>Fragile interfaces with complicated rules about how they&rsquo;re called, such as;
+<ul>
+<li>Only being allowed to call interfaces on certain threads and not others.</li>
+<li>Management of resources require intricate and explict care.</li>
+</ul>
+</li>
+</ul>
+<p>This is very fragile, tedious, and showing signs of high friction. We&rsquo;ll see how fibers can help us avoid this later.</p>
+<h4 id="an-incorrect-and-often-advocated-solution">
+  An incorrect and often advocated solution
+  <a class="anchor" href="#an-incorrect-and-often-advocated-solution">#</a>
+</h4>
+<p>There&rsquo;s some proponents that advocate that one such way to avoid these issues is to do away with the thread pool altogether and spawn threads everytime you make a job. The OS will schedule them and avoid the deadlock, when the jobs are done the threads are joined.</p>
+<p>This is actually how 
+  <a href="https://en.cppreference.com/w/cpp/thread/async"><code>std::async</code></a> works in C++ with the 
+  <a href="https://en.cppreference.com/w/cpp/thread/launch"><code>async</code></a> launch policy. It will certainly avoid the problem but it has problems which I&rsquo;ll outline here:</p>
+<ul>
+<li>
+<p>Thread construction has overhead. The primary motivation behind thread pools to begin with is to eliminate the cost of thread construction. This overhead will have diminishing returns if you cut your jobs too fine and we&rsquo;ll see later that cutting jobs real fine isn&rsquo;t only possible with fibers, but that it&rsquo;s actually encouraged.</p>
+</li>
+<li>
+<p>There will be a lot of context switches. This many context switches is only necessary because we&rsquo;ve delegated all the scheduling to the OS when we could do a much better job ourselfs. This context switching overhead will lead to diminishing returns.</p>
+</li>
+<li>
+<p>Threads are a finite resource. If you do plan on cutting jobs real fine, it&rsquo;s very easy to see how a level with a few thousand models, handful of meshes per model, handful of materials per mesh and a handful of textures per material can quickly lead to tens of thousands of threads. With this many threads, certain security features like <code>ulimit</code> on Linux, a similar feature on Windows which has no name that I know of, and even third party monitoring services like AV software may decide to kill your process before it has finished loading the level thinking your process is a 
+  <a href="https://en.wikipedia.org/wiki/Denial-of-service_attack">denial of service attack</a>.</p>
+</li>
+</ul>
+<h4 id="a-correct-and-often-advocated-solution">
+  A correct and often advocated solution
+  <a class="anchor" href="#a-correct-and-often-advocated-solution">#</a>
+</h4>
+<p>This nesting of jobs and their dependencies have given rise to a multitude of task graph libraries which require you to explicitly describe a graph of all your jobs and their dependencies. This too avoids the deadlock, provided you don&rsquo;t form cycles in the graph. However it has problems of its own which make it unsuitable:</p>
+<ul>
+<li>The graph is <em>explicit</em> and so you must describe it all yourself.</li>
+<li>Requires a complete, global understanding of all tasks, their dependencies and how they should interact.</li>
+<li>Mandates you write code in a way counter to what is natural to do.</li>
+<li>More likely to trigger priority inversion since the scheduling is out of your control.</li>
+<li>Still requires explicit memory management of resources, be it by copy or reference count.</li>
+</ul>
+<h2 id="what-mn-fibers-will-solve">
+  What M:N fibers will solve
+  <a class="anchor" href="#what-mn-fibers-will-solve">#</a>
+</h2>
+<p>The trick of course here is that we want to write code that appears like it blocks but it doesn&rsquo;t actually block the thread. In other words, we want to write the exact code in my example but we want <code>wait_for_all_jobs</code> to lie a little about what it does. This one little lie enables us to experience a natural and efficient solution to all the above concerns, in particular:</p>
+<ul>
+<li>Write the exact code we have already written without making copies or reference counting resources.</li>
+<li>Avoid nested induced deadlocks, even though we&rsquo;ll still have that thread pool to take advantage of OS threads.</li>
+<li>Reduce the amount of context switches to only necessary levels.</li>
+<li>Jobifiy just about everything.</li>
+<li>Scale without making any changes to our code.</li>
+</ul>
+<h2 id="what-mn-fibers-will-not-solve">
+  What M:N fibers will not solve
+  <a class="anchor" href="#what-mn-fibers-will-not-solve">#</a>
+</h2>
+<p>It almost sounds a too good to be true and you should be highly skeptical. This is not without it&rsquo;s own unique set of problems it cannot solve. If you recall from earlier, fibers are a form of cooperative scheduling, that is we <em>yield</em> to other fibers to allow them to run instead of waiting. This means we&rsquo;re always keeping the thread saturated with work to do.</p>
+<p>With that fact refreshed, imagine what happens when our fibers cannot yield? What if our fibers invoke operating system primitives that block, or interfaces which indirectly do?</p>
+<ul>
+<li>IO</li>
+<li>sleeps</li>
+<li>waits (seen in locking primitives)</li>
+</ul>
+<p>When you block a thread in one of these ways, the OS thread our fiber is on, is going to block until the blocking action completes. As a result, it&rsquo;s imperative that a fiber avoids such operations.</p>
+<p>The other thing fibers cannot solve is 
+  <a href="https://en.wikipedia.org/wiki/Priority_inversion">Priority Inversion</a>. However, we&rsquo;ll see later that by implementing a fiber scheduler, there&rsquo;s at least some things we can do to lower the chance of it happening, something that isn&rsquo;t possible with traditional threads at all.</p>
+<p>You <strong>should not use</strong> fibers for anything that requires a realtime priority. One such example is audio mixing. If you require quick preemption and high priority scheduling, there&rsquo;s not much room in a fiber scheduler to do that as fibers are cooperatively scheduling each other. Do not move systems that require constant realtime priority to fibers, it&rsquo;s too easy to starve them.</p>
+<h2 id="how-not-to-implement-mn-fibers">
+  How not to implement M:N fibers
+  <a class="anchor" href="#how-not-to-implement-mn-fibers">#</a>
+</h2>
+<ul>
+<li>
+<p>Using the M:1 approach. This 
+  <a href="https://github.com/facebook/folly/tree/master/folly/fibers">approach</a> is 
+  <a href="https://www.boost.org/doc/libs/1_72_0/libs/fiber/doc/html/index.html">seen</a> in 
+  <a href="https://docs.microsoft.com/en-us/windows/win32/procthread/using-fibers">countless</a> libraries. The problem with this approach is it does not take advantage of multiple hardware threads. It&rsquo;s true you can layer this ontop of threads, but in doing so you&rsquo;ll still lack all the syncronization primitives you&rsquo;re used to with threads and <strong>you cannot use OS syncronization primitives in your fibers</strong> for the reasons listed above. They&rsquo;re not designed to be used by multiple threads and adding support is likely more difficult than writing your own.</p>
+</li>
+<li>
+<p>Use <code>setjmp</code> and <code>longjmp</code>. There&rsquo;s a 
+  <a href="https://yosefk.com/blog/coroutines-in-one-page-of-c.html">growing</a> number 
+  <a href="https://www.csl.mtu.edu/cs4411.ck/www/NOTES/non-local-goto/coroutine.html">of</a> people 
+  <a href="http://250bpm.com/blog:48">that</a> do 
+  <a href="http://www.1024cores.net/home/lock-free-algorithms/tricks/fibers">this</a>. Fibers need their own stack which this does not permit.</p>
+</li>
+</ul>
+<p>The third and more subtle mistake people make when implementing fibers is to use OS provided functionality for implementing the user-space context switching</p>
+<ul>
+<li>POSIX provides 
+  <a href="https://en.wikipedia.org/wiki/Setcontext"><code>setcontext</code>, <code>getcontext</code>, and <code>makecontext</code></a>.</li>
+<li>Windows provides 
+  <a href="https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadcontext"><code>SetThreadContext</code> and <code>GetThreadContext</code></a>.</li>
+<li>Windows also provides actual Fibers 
+  <a href="https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfiber"><code>CreateFiber</code></a>.</li>
+</ul>
+<h3 id="avoid-os-fiber-primitives">
+  Avoid OS fiber primitives
+  <a class="anchor" href="#avoid-os-fiber-primitives">#</a>
+</h3>
+<p>One of the challenges we need to overcome in our fiber implementation is making the construction of fibers fast. Imagine you want to spawn thousands of fibers every frame, none of the OS methods allow this because they&rsquo;re required to save and restore more state than we&rsquo;re interested in. This is an area where 
+  <a href="https://en.wikipedia.org/wiki/Not_invented_here">NIH syndrome</a> will pay off.</p>
+<p>Even if the interfaces provided by the OS were exactly what we needed in terms of performance, they&rsquo;re made inadequate because of other more subtle issues which are often overlooked. I&rsquo;ve compiled a list of all the problems with OS provided primitives.</p>
+<h4 id="problems-with-posix">
+  Problems with POSIX
+  <a class="anchor" href="#problems-with-posix">#</a>
+</h4>
+<ul>
+<li>The POSIX functions are 
+  <a href="https://pubs.opengroup.org/onlinepubs/009695399/functions/makecontext.html#tag_03_356_08">obsolescent</a> and shouldn&rsquo;t be used. Implementations of the standard library, like 
+  <a href="https://www.musl-libc.org/">musl</a> <strong>do not</strong> 
+  <a href="https://wiki.musl-libc.org/open-issues.html#ucontext.h">provide the functions</a> at all since they don&rsquo;t need to.</li>
+<li>They need to make system calls (which are context switches) to save the signal mask.</li>
+<li>They need to save and restore a 
+  <a href="https://code.woboq.org/userspace/glibc/sysdeps/unix/sysv/linux/x86/sys/ucontext.h.html">large grab-bag structure</a> of state, most of which we&rsquo;re not interested in.</li>
+</ul>
+<h4 id="problems-with-windows">
+  Problems with Windows
+  <a class="anchor" href="#problems-with-windows">#</a>
+</h4>
+<ul>
+<li>The 
+  <a href="https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfiber">CreateFiber</a> interface is responsible for allocating the stack. This means we cannot provide our own stack memory, which in turns means we cannot reuse stacks. The ability to reuse stacks will impact our performance.</li>
+<li>The 
+  <a href="https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfiber">CreateFiber</a> interface leads you into a false sense of security by allowing you to use Windows syncronization primitives like <code>WaitForMultipleObjects</code>, which have a pathetically small limitation on the maximum number of waiters (i.e. <code>MAXIMUM_WAIT_OBJECTS = 64</code>) due to legacy limitations in the API.</li>
+<li>The <code>SetThreadContext</code> and <code>GetThreadContext</code> functions rely on a similar, 
+  <a href="https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-arm64_nt_context">large grab-bag structure</a> of state, most of which we&rsquo;re not interested in.</li>
+</ul>
+<p>You&rsquo;ll find many other examples of similar problems for interfaces provided by your OS of choice. The fact of the matter is, because these need to be <em>generic</em> interfaces, they need to do a lot more work.</p>
+<h2 id="user-space-context-switching">
+  User space context switching
+  <a class="anchor" href="#user-space-context-switching">#</a>
+</h2>
+<p>To switch contexts in users space, we need to be able to backup certain state about the context and set the appropriate state so we can jump into that context. This is highly ABI, OS and architecture specific. I&rsquo;m going to focus on the 
+  <a href="https://wiki.osdev.org/System_V_ABI">SysV x86_64 ABI</a> on Linux and 
+  <a href="https://andreaspk.github.io/posts/2019-02-16-Windows%20Calling%20Convention.html">x64 ABI</a> on Windows, since the former is my development platform and the latter is quite similar. The ideas are the same on other platforms and you can find all the relevant documentation for what needs to be done with a bit of Googling, or you can save yourself the effort and use something like 
+  <a href="https://github.com/boostorg/context">Boost.Context</a> which has working code for a ton of platforms. Just remember that you can beat it for performance since it has to be generic.</p>
+<h3 id="getting-the-context">
+  Getting the context
+  <a class="anchor" href="#getting-the-context">#</a>
+</h3>
+<p>The idea behind getting the context is to save the current registers the ABI says need to be saved and the return address. We can use these then later to come back by restoring them.</p>
+<p>The code below is x86_64 assembler in GAS syntax for the <strong>SysV x86_64 ABI</strong>. The lines that begin with <code>.</code> are called assembler directives and I specify the type of my labels here as global functions, this will be needed so we can externally reference them in C and C++.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-gas" data-lang="gas"><span style="color:#a6e22e">.type</span> <span style="color:#66d9ef">get_context</span>, <span style="color:#a6e22e">@function</span>
+<span style="color:#a6e22e">.global</span> <span style="color:#66d9ef">get_context</span>
+get_context:
+  <span style="color:#75715e"># Save the return address and stack pointer.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> (%rsp), %r8
+  <span style="color:#a6e22e">movq</span> %r8, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">0</span>(%rdi) <span style="color:#960050;background-color:#1e0010">//</span> <span style="color:#66d9ef">RIP</span>
+  <span style="color:#a6e22e">leaq</span> <span style="color:#ae81ff">8</span>(%rsp), %r8
+  <span style="color:#a6e22e">movq</span> %r8, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">1</span>(%rdi) <span style="color:#960050;background-color:#1e0010">//</span> <span style="color:#66d9ef">RSP</span>
+
+  <span style="color:#75715e"># Save preserved registers.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> %rbx, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">2</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %rbp, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">3</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r12, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">4</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r13, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">5</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r14, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">6</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r15, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">7</span>(%rdi)
+
+  <span style="color:#75715e"># Return.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">xorl</span> %eax, %eax
+  <span style="color:#a6e22e">ret</span>
+</code></pre></div>
+    </div>
+  </label>
+</div>
+
+<p>Those who really know their stuff will note that I&rsquo;ve not saved the x87 FPU state as it&rsquo;s not actually used for x86_64 code. It&rsquo;s true that the compiler may generate code to it if I use <code>long double</code> which requires the full 80-bit precision, however this is one of the things I can be sure I won&rsquo;t use in my code and so I do not need to worry about. Existing interfaces cannot make those decisions for you however.</p>
+<p>If you look carefully you&rsquo;ll note that RDI is actually the first argument to this <code>get_context</code> function as defined by the ABI and I&rsquo;m storing the values of some registers at fixed offsets relative to RDI. Those offsets are <code>8*n</code> where <code>n</code> is some number, that&rsquo;s because these registers are 8-bytes in size. The thing passed to RDI here is just a pointer to a structure that has those register, you can define it like this if you want.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> Context {
+  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>rip, <span style="color:#f92672">*</span>rsp;
+  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>rbx, <span style="color:#f92672">*</span>rbp, <span style="color:#f92672">*</span>r12, <span style="color:#f92672">*</span>r13, <span style="color:#f92672">*</span>r14, <span style="color:#f92672">*</span>r15;
+};
+</code></pre></div><blockquote>
+<p>Take note that this <code>Context</code> structure isn&rsquo;t a large grab-bag of state like the OS provided interfaces. We have a total of 64 bytes to save and restore for context switches, which convienently fits in a singlle cache line. Similarly, we only need 12 instructions to save the context and 11 instructions to restore it. This is as fast as it gets.</p>
+</blockquote>
+<h3 id="setting-the-context">
+  Setting the context
+  <a class="anchor" href="#setting-the-context">#</a>
+</h3>
+<p>Setting the context is pretty much the reverse of getting the context. It&rsquo;s made a little more tricky on x86 since you cannot set the instruction pointer directly, it has to be done through the stack. This is what you see here with moving RIP into R8 so we can push it to the stack.
+You cannot push directly from a memory location, hence loading it into a register first.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-gas" data-lang="gas"><span style="color:#a6e22e">.type</span> <span style="color:#66d9ef">set_context</span>, <span style="color:#a6e22e">@function</span>
+<span style="color:#a6e22e">.global</span> <span style="color:#66d9ef">set_context</span>
+set_context:
+  <span style="color:#75715e"># Should return to the address set with {get, swap}_context.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">0</span>(%rdi), %r8
+
+  <span style="color:#75715e"># Load new stack pointer.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">1</span>(%rdi), %rsp
+
+  <span style="color:#75715e"># Load preserved registers.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">2</span>(%rdi), %rbx
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">3</span>(%rdi), %rbp
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">4</span>(%rdi), %r12
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">5</span>(%rdi), %r13
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">6</span>(%rdi), %r14
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">7</span>(%rdi), %r15
+
+  <span style="color:#75715e"># Push RIP to stack for RET.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">pushq</span> %r8
+
+  <span style="color:#75715e"># Return.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">xorl</span> %eax, %eax
+  <span style="color:#a6e22e">ret</span>
+</code></pre></div>
+    </div>
+  </label>
+</div>
+
+<h3 id="example-of-use">
+  Example of use
+  <a class="anchor" href="#example-of-use">#</a>
+</h3>
+<p>With that out of the way, we can now do some very interesting things in C.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">get_context</span>(Context <span style="color:#f92672">*</span>c);
+<span style="color:#66d9ef">extern</span> <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">set_context</span>(Context <span style="color:#f92672">*</span>c);
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+  <span style="color:#66d9ef">volatile</span> <span style="color:#66d9ef">int</span> x <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+
+  Context c;
+  get_context(<span style="color:#f92672">&amp;</span>c);
+
+  printf(<span style="color:#e6db74">&#34;hello, world!</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+
+  <span style="color:#66d9ef">if</span> (x <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span>) {
+    x<span style="color:#f92672">++</span>;
+    set_context(<span style="color:#f92672">&amp;</span>c);
+  }
+
+  <span style="color:#66d9ef">return</span> <span style="color:#ae81ff">0</span>;
+}
+</code></pre></div>
+    </div>
+  </label>
+</div>
+
+<blockquote>
+<p>This code will print <code>&quot;hello, world!&quot;</code> twice.</p>
+</blockquote>
+<h4 id="the-need-for-volatile">
+  The need for volatile
+  <a class="anchor" href="#the-need-for-volatile">#</a>
+</h4>
+<p>The <code>set_context</code> call returns us to where <code>get_context</code> was called, the value of <code>x</code> will be <code>1</code> the second time through and the <code>set_context</code> cannot be called again since <code>x</code> is no longer <code>0</code>. This behaviour only works because I used <code>volatile</code> though. If we were to omit it. The compiler will see the if statement as always true, because in a normal program it would be. As a result, we&rsquo;d get an infinite loop of <code>&quot;hello, world!&quot;</code>.</p>
+<h3 id="making-a-context">
+  Making a context
+  <a class="anchor" href="#making-a-context">#</a>
+</h3>
+<p>What we&rsquo;re more interested in doing here is actually making our own context though. This is nothing more than an implementation of <code>setjmp</code> and <code>longjmp</code> with a slightly different interface. We want to run actual functions like threads do. We also want to give it our own stack which we will see becomes important later.</p>
+<p>We can do that pretty easily, we just need to set the <code>rsp</code> field (stack pointer) of our <code>Context</code> struct to point to some piece of memory that will behave as our stack. Then we point <code>rip</code> (instruction pointer) to the start of our function we wish to call.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">void</span> <span style="color:#a6e22e">foo</span>() {
+  printf(<span style="color:#e6db74">&#34;you called foo</span><span style="color:#ae81ff">\n</span><span style="color:#e6db74">&#34;</span>);
+
+  <span style="color:#75715e">// Need to exit since there&#39;s no return address on the stack after coming
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// here from |set_context| in main.
+</span><span style="color:#75715e"></span>  exit(<span style="color:#ae81ff">1</span>);
+}
+
+<span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+  <span style="color:#75715e">// This will behave as our stack when we call foo.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">char</span> data[<span style="color:#ae81ff">4096</span>];
+
+  <span style="color:#75715e">// Remember, stacks grow downwards so we need a pointer to the end of the stack.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>sp <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)(data <span style="color:#f92672">+</span> <span style="color:#66d9ef">sizeof</span> data);
+
+  Context c <span style="color:#f92672">=</span> {<span style="color:#ae81ff">0</span>};
+  c.rip <span style="color:#f92672">=</span> (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)foo;
+  c.rsp <span style="color:#f92672">=</span> (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)sp;
+
+  set_context(<span style="color:#f92672">&amp;</span>c);
+}
+</code></pre></div>
+    </div>
+  </label>
+</div>
+
+<p>There&rsquo;s a couple problems with this code though. It&rsquo;s important to check your ABI because stack layout does require consideration. The SysV ABI in particular requires that our stack be 16-byte aligned for 
+  <a href="https://en.wikipedia.org/wiki/Streaming_SIMD_Extensions">SSE</a>. In addition to alignment, the ABI requires we also have 128 bytes of space below the stack called the 
+  <a href="https://en.wikipedia.org/wiki/Red_zone_%28computing%29">Red Zone</a>.</p>
+<p>The relevant modifications we need to make are included here.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">int</span> <span style="color:#a6e22e">main</span>() {
+  <span style="color:#75715e">// This will behave as our stack when we call foo.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">char</span> data[<span style="color:#ae81ff">4096</span>];
+
+  <span style="color:#75715e">// Remember, stacks grow downwards so we need a pointer to the end of the stack.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">char</span> <span style="color:#f92672">*</span>sp <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)(data <span style="color:#f92672">+</span> <span style="color:#66d9ef">sizeof</span> data);
+
+  <span style="color:#75715e">// Align stack pointer on 16-byte boundary.
+</span><span style="color:#75715e"></span>  sp <span style="color:#f92672">=</span> (<span style="color:#66d9ef">char</span><span style="color:#f92672">*</span>)((uintptr_t)sp <span style="color:#f92672">&amp;</span> <span style="color:#f92672">-</span><span style="color:#ae81ff">16L</span>);
+
+  <span style="color:#75715e">// Make 128 byte scratch space for the Red Zone. This arithmetic will not unalign
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// our stack pointer because 128 is a multiple of 16. The Red Zone must also be
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// 16-byte aligned.
+</span><span style="color:#75715e"></span>  sp <span style="color:#f92672">-=</span> <span style="color:#ae81ff">128</span>;
+
+  Context c <span style="color:#f92672">=</span> {<span style="color:#ae81ff">0</span>};
+  c.rip <span style="color:#f92672">=</span> (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)foo;
+  c.rsp <span style="color:#f92672">=</span> (<span style="color:#66d9ef">void</span><span style="color:#f92672">*</span>)sp;
+
+  set_context(<span style="color:#f92672">&amp;</span>c);
+}
+</code></pre></div><blockquote>
+<p>This prints <code>&quot;you called foo&quot;</code></p>
+</blockquote>
+
+    </div>
+  </label>
+</div>
+
+<p>You may be wondering why we need custom stacks for our fibers. Functions have locals that live on the stack, when we switch between fibers, we need to preserve the contents of those locals so when we resume they&rsquo;ll still be there. Similarly, in the case of languages like C++, the objects that live on the stack will have their destructors called upon return of the function. Those destructors reference the object on the stack directly through their <code>this</code> pointer which will point into the stack.</p>
+<blockquote>
+<p>This is the main reason <code>setjmp</code> and <code>longjmp</code> cannot be realistically used in C++, the destructors of your stack allocated objects will never get called for one thing, unless you jump back, but even if you did, the contents of the stack are no longer going to be that of what the objects were when you <code>longjmp</code> out. This means when the destructors do get called, they&rsquo;re referencing clobbered data and invoking undefined behavior.</p>
+</blockquote>
+<h3 id="swapping-contexts">
+  Swapping contexts
+  <a class="anchor" href="#swapping-contexts">#</a>
+</h3>
+<p>Context swapping is a combination of <code>set_context</code> and <code>get_context</code>. It replaces one context for another, backing up the current context.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-gas" data-lang="gas"><span style="color:#a6e22e">.type</span> <span style="color:#66d9ef">swap_context</span>, <span style="color:#a6e22e">@function</span>
+<span style="color:#a6e22e">.global</span> <span style="color:#66d9ef">swap_context</span>
+swap_context:
+  <span style="color:#75715e"># Save the return address.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> (%rsp), %r8
+  <span style="color:#a6e22e">movq</span> %r8, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">0</span>(%rdi) <span style="color:#960050;background-color:#1e0010">//</span> <span style="color:#66d9ef">RIP</span>
+  <span style="color:#a6e22e">leaq</span> <span style="color:#ae81ff">8</span>(%rsp), %r8
+  <span style="color:#a6e22e">movq</span> %r8, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">1</span>(%rdi) <span style="color:#960050;background-color:#1e0010">//</span> <span style="color:#66d9ef">RSP</span>
+
+  <span style="color:#75715e"># Save preserved registers.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> %rbx, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">2</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %rbp, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">3</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r12, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">4</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r13, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">5</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r14, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">6</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r15, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">7</span>(%rdi)
+
+  <span style="color:#75715e"># Should return to the address set with {get, swap}_context.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">0</span>(%rsi), %r8
+
+  <span style="color:#75715e"># Load new stack pointer.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">1</span>(%rsi), %rsp
+
+  <span style="color:#75715e"># Load preserved registers.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">2</span>(%rsi), %rbx
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">3</span>(%rsi), %rbp
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">4</span>(%rsi), %r12
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">5</span>(%rsi), %r13
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">6</span>(%rsi), %r14
+  <span style="color:#a6e22e">movq</span> <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">7</span>(%rsi), %r15
+
+  <span style="color:#75715e"># Push RIP to stack for RET.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">pushq</span> %r8
+
+  <span style="color:#75715e"># Return.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">xorl</span> %eax, %eax
+  <span style="color:#a6e22e">ret</span>
+</code></pre></div>
+    </div>
+  </label>
+</div>
+
+<h3 id="windows">
+  Windows
+  <a class="anchor" href="#windows">#</a>
+</h3>
+<p>As mentioned, all the above assembly is for the SysV x86_64 ABI which is great if you only care about macOS, Linux, and FreeBSD platforms.</p>
+<p>The good news is extending it for the x64 Windows ABI is quite straight forward. We do need to save and restore two additional registers (RDI and RSI) though, since they too are considered &ldquo;preserved registers&rdquo; in this ABI. The other thing that is different is the calling convention. Instead of the arguments ending up in RDI and RSI, they end up in RDX and RCX.</p>
+<p>Here&rsquo;s the patch and accompanying <code>Context</code> structure for supporting Windows.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> Context {
+  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>rip, <span style="color:#f92672">*</span>rsp;
+  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>rbx, <span style="color:#f92672">*</span>rbp, <span style="color:#f92672">*</span>r12, <span style="color:#f92672">*</span>r13, <span style="color:#f92672">*</span>r14, <span style="color:#f92672">*</span>r15, <span style="color:#f92672">*</span>rdi, <span style="color:#f92672">*</span>rsi;
+};
+</code></pre></div>
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-diff" data-lang="diff"> get_context:
+   # Save the return address and stack pointer.
+   movq (%rsp), %r8
+<span style="color:#f92672">-  movq %r8, 8*0(%rdi) // RIP
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq %r8, 8*0(%rdx) // RIP
+</span><span style="color:#a6e22e"></span>   leaq 8(%rsp), %r8
+<span style="color:#f92672">-  movq %r8, 8*1(%rdi) // RSP
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq %r8, 8*1(%rdx) // RSP
+</span><span style="color:#a6e22e"></span>
+   # Save preserved registers.
+<span style="color:#f92672">-  movq %rbx, 8*2(%rdi)
+</span><span style="color:#f92672">-  movq %rbp, 8*3(%rdi)
+</span><span style="color:#f92672">-  movq %r12, 8*4(%rdi)
+</span><span style="color:#f92672">-  movq %r13, 8*5(%rdi)
+</span><span style="color:#f92672">-  movq %r14, 8*6(%rdi)
+</span><span style="color:#f92672">-  movq %r15, 8*7(%rdi)
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq %rbx, 8*2(%rdx)
+</span><span style="color:#a6e22e">+  movq %rbp, 8*3(%rdx)
+</span><span style="color:#a6e22e">+  movq %r12, 8*4(%rdx)
+</span><span style="color:#a6e22e">+  movq %r13, 8*5(%rdx)
+</span><span style="color:#a6e22e">+  movq %r14, 8*6(%rdx)
+</span><span style="color:#a6e22e">+  movq %r15, 8*7(%rdx)
+</span><span style="color:#a6e22e">+  movq %rdi, 8*8(%rdx)
+</span><span style="color:#a6e22e">+  movq %rsi, 8*9(%rdx)
+</span><span style="color:#a6e22e"></span>
+   # Return.
+   xorl %eax, %eax
+<span style="color:#75715e">@@ -23,18 +25,20 @@
+</span><span style="color:#75715e"></span>
+ set_context:
+   # Should return to the address set with {get, swap}_context.
+<span style="color:#f92672">-  movq 8*0(%rdi), %r8
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq 8*0(%rdx), %r8
+</span><span style="color:#a6e22e"></span>
+   # Load new stack pointer.
+<span style="color:#f92672">-  movq 8*1(%rdi), %rsp
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq 8*1(%rdx), %rsp
+</span><span style="color:#a6e22e"></span>
+   # Load preserved registers.
+<span style="color:#f92672">-  movq 8*2(%rdi), %rbx
+</span><span style="color:#f92672">-  movq 8*3(%rdi), %rbp
+</span><span style="color:#f92672">-  movq 8*4(%rdi), %r12
+</span><span style="color:#f92672">-  movq 8*5(%rdi), %r13
+</span><span style="color:#f92672">-  movq 8*6(%rdi), %r14
+</span><span style="color:#f92672">-  movq 8*7(%rdi), %r15
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq 8*2(%rdx), %rbx
+</span><span style="color:#a6e22e">+  movq 8*3(%rdx), %rbp
+</span><span style="color:#a6e22e">+  movq 8*4(%rdx), %r12
+</span><span style="color:#a6e22e">+  movq 8*5(%rdx), %r13
+</span><span style="color:#a6e22e">+  movq 8*6(%rdx), %r14
+</span><span style="color:#a6e22e">+  movq 8*7(%rdx), %r15
+</span><span style="color:#a6e22e">+  movq 8*8(%rdx), %rdi
+</span><span style="color:#a6e22e">+  movq 8*9(%rdx), %rsi
+</span><span style="color:#a6e22e"></span>
+   # Push RIP to stack for RET.
+   pushq %r8
+<span style="color:#75715e">@@ -46,31 +50,35 @@
+</span><span style="color:#75715e"></span> swap_context:
+   # Save the return address.
+   movq (%rsp), %r8
+<span style="color:#f92672">-  movq %r8, 8*0(%rdi) // RIP
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq %r8, 8*0(%rdx) // RIP
+</span><span style="color:#a6e22e"></span>   leaq 8(%rsp), %r8
+<span style="color:#f92672">-  movq %r8, 8*1(%rdi) // RSP
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq %r8, 8*1(%rdx) // RSP
+</span><span style="color:#a6e22e"></span>
+   # Save preserved registers.
+<span style="color:#f92672">-  movq %rbx, 8*2(%rdi)
+</span><span style="color:#f92672">-  movq %rbp, 8*3(%rdi)
+</span><span style="color:#f92672">-  movq %r12, 8*4(%rdi)
+</span><span style="color:#f92672">-  movq %r13, 8*5(%rdi)
+</span><span style="color:#f92672">-  movq %r14, 8*6(%rdi)
+</span><span style="color:#f92672">-  movq %r15, 8*7(%rdi)
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq %rbx, 8*2(%rdx)
+</span><span style="color:#a6e22e">+  movq %rbp, 8*3(%rdx)
+</span><span style="color:#a6e22e">+  movq %r12, 8*4(%rdx)
+</span><span style="color:#a6e22e">+  movq %r13, 8*5(%rdx)
+</span><span style="color:#a6e22e">+  movq %r14, 8*6(%rdx)
+</span><span style="color:#a6e22e">+  movq %r15, 8*7(%rdx)
+</span><span style="color:#a6e22e">+  movq %rdi, 8*8(%rdx)
+</span><span style="color:#a6e22e">+  movq %rsi, 8*9(%rdx)
+</span><span style="color:#a6e22e"></span>
+   # Should return to the address set with {get, swap}_context.
+<span style="color:#f92672">-  movq 8*0(%rsi), %r8
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq 8*0(%rcx), %r8
+</span><span style="color:#a6e22e"></span>
+   # Load new stack pointer.
+<span style="color:#f92672">-  movq 8*1(%rsi), %rsp
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq 8*1(%rcx), %rsp
+</span><span style="color:#a6e22e"></span>
+   # Load preserved registers.
+<span style="color:#f92672">-  movq 8*2(%rsi), %rbx
+</span><span style="color:#f92672">-  movq 8*3(%rsi), %rbp
+</span><span style="color:#f92672">-  movq 8*4(%rsi), %r12
+</span><span style="color:#f92672">-  movq 8*5(%rsi), %r13
+</span><span style="color:#f92672">-  movq 8*6(%rsi), %r14
+</span><span style="color:#f92672">-  movq 8*7(%rsi), %r15
+</span><span style="color:#f92672"></span><span style="color:#a6e22e">+  movq 8*2(%rcx), %rbx
+</span><span style="color:#a6e22e">+  movq 8*3(%rcx), %rbp
+</span><span style="color:#a6e22e">+  movq 8*4(%rcx), %r12
+</span><span style="color:#a6e22e">+  movq 8*5(%rcx), %r13
+</span><span style="color:#a6e22e">+  movq 8*6(%rcx), %r14
+</span><span style="color:#a6e22e">+  movq 8*7(%rcx), %r15
+</span><span style="color:#a6e22e">+  movq 8*8(%rcx), %rdi
+</span><span style="color:#a6e22e">+  movq 8*9(%rcx), %rsi
+</span><span style="color:#a6e22e"></span>
+   # Push RIP to stack for RET.
+   pushq %r8
+</code></pre></div>
+    </div>
+  </label>
+</div>
+
+<h4 id="security">
+  Security
+  <a class="anchor" href="#security">#</a>
+</h4>
+<p>MSVC <strong>for debug builds</strong> has something called <code>/RTC</code> (
+  <a href="https://docs.microsoft.com/en-us/cpp/build/reference/rtc-run-time-error-checks">Runtime-Time Error Checks</a>) which help detect stack corruption and other stack related issues. Our stack switching code does not play nice with it. In particular, I <em>believe</em> it expects the stack pointer address on each function call return be in the range defined by the 
+  <a href="https://en.wikipedia.org/wiki/Win32_Thread_Information_Block">TIB</a> which is stored in the GS segment register.</p>
+<p>We can modify our context switching functions so that we update <code>StackBase</code> and <code>StackLimit</code> to avoid this issue, or you can just outright disable <code>/RTC</code>. <code>/RTC</code> is not enabled in release builds and it precludes optimizations, so it can&rsquo;t even be realistically turned on in a release build. I left supporting this as an exercise to the reader because I&rsquo;m not exactly sure that it&rsquo;s enough to silence RTC.</p>
+<blockquote>
+<p>Not enough information exists on how <code>/RTC</code> works for me to be definitive on how to silence it here. It would be nice if Microsoft would document stuff like this. If someone knows how it works please let me know.</p>
+</blockquote>
+<h3 id="integrating-into-your-build">
+  Integrating into your build
+  <a class="anchor" href="#integrating-into-your-build">#</a>
+</h3>
+<p>Lets mention the big elephant in the room. This is <em>assembly language</em>.  Most build pipelines are not setup to deal with integrating assembly into the build process, and even if they were, the assembly above is the GAS syntax which is only understood by some assemblers. Once you begin talking about MASM, NASM, FASM, etc, this gets annoying quick. You need additional build tools, which vary by platform, etc.</p>
+<h4 id="inline-assembler">
+  Inline assembler
+  <a class="anchor" href="#inline-assembler">#</a>
+</h4>
+<p>One way to avoid this problem is to just use inline assembler which works <em>great</em> if your compiler supports it. MSVC on Windows for x64 <em>does not</em> though. I also don&rsquo;t trust myself to get inline assembler right in terms of clobbers for inputs and outputs.</p>
+<h4 id="just-use-cc">
+  Just use C/C++
+  <a class="anchor" href="#just-use-cc">#</a>
+</h4>
+<p>One trick that apparently few people know about is that you can write assembler in almost-standard C and C++ without an inline assembler. I thought of this trick while writing this sourcebook and discovered to my surprise not only is it possible, it&rsquo;s perfect for this.</p>
+<p>We&rsquo;re not going to be making any real changes to our assembly source, this isn&rsquo;t something that will require future maintaince. This is a one and done deal, so why don&rsquo;t we just assemble it offline with what ever assembler we want, get a small byte code listing and embed that into our C/C++ source code directly as a byte array?</p>
+<p>Take the <code>get_context</code> function from earlier</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-gas" data-lang="gas">get_context:
+  <span style="color:#75715e"># Save the return address and stack pointer.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> (%rsp), %r8
+  <span style="color:#a6e22e">movq</span> %r8, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">0</span>(%rdi) <span style="color:#960050;background-color:#1e0010">//</span> <span style="color:#66d9ef">RIP</span>
+  <span style="color:#a6e22e">leaq</span> <span style="color:#ae81ff">8</span>(%rsp), %r8
+  <span style="color:#a6e22e">movq</span> %r8, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">1</span>(%rdi) <span style="color:#960050;background-color:#1e0010">//</span> <span style="color:#66d9ef">RSP</span>
+
+  <span style="color:#75715e"># Save preserved registers.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">movq</span> %rbx, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">2</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %rbp, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">3</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r12, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">4</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r13, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">5</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r14, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">6</span>(%rdi)
+  <span style="color:#a6e22e">movq</span> %r15, <span style="color:#ae81ff">8</span>*<span style="color:#ae81ff">7</span>(%rdi)
+
+  <span style="color:#75715e"># Return.
+</span><span style="color:#75715e"></span>  <span style="color:#a6e22e">xorl</span> %eax, %eax
+  <span style="color:#a6e22e">ret</span>
+</code></pre></div>
+    </div>
+  </label>
+</div>
+
+<p>Feed it into an assembler. Here I can use <code>gcc</code> as it&rsquo;s a frontend for many languages, including assembler.</p>
+<blockquote>
+<p>gcc -c file.S</p>
+</blockquote>
+<p>Now dump the contents of it with <code>objdump -d</code></p>
+<blockquote>
+<p>objdump file.o</p>
+</blockquote>
+<pre><code>0000000000000000 &lt;get_context&gt;:
+   0:   4c 8b 04 24             mov    (%rsp),%r8
+   4:   4c 89 07                mov    %r8,(%rdi)
+   7:   4c 8d 44 24 08          lea    0x8(%rsp),%r8
+   c:   4c 89 47 08             mov    %r8,0x8(%rdi)
+  10:   48 89 5f 10             mov    %rbx,0x10(%rdi)
+  14:   48 89 6f 18             mov    %rbp,0x18(%rdi)
+  18:   4c 89 67 20             mov    %r12,0x20(%rdi)
+  1c:   4c 89 6f 28             mov    %r13,0x28(%rdi)
+  20:   4c 89 77 30             mov    %r14,0x30(%rdi)
+  24:   4c 89 7f 38             mov    %r15,0x38(%rdi)
+  28:   31 c0                   xor    %eax,%eax
+  2a:   c3                      retq
+</code></pre><p>Here we just want those bytes on the left. Add <code>0x</code> to each and put it in an
+<code>unsigned char</code> array with <code>static</code> storage duration.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">static</span> <span style="color:#66d9ef">unsigned</span> <span style="color:#66d9ef">char</span> get_context_code[] <span style="color:#f92672">=</span> {
+  <span style="color:#ae81ff">0x4c</span>, <span style="color:#ae81ff">0x8b</span>, <span style="color:#ae81ff">0x04</span>, <span style="color:#ae81ff">0x24</span>,
+  <span style="color:#ae81ff">0x4c</span>, <span style="color:#ae81ff">0x89</span>, <span style="color:#ae81ff">0x07</span>,
+  <span style="color:#ae81ff">0x4c</span>, <span style="color:#ae81ff">0x8d</span>, <span style="color:#ae81ff">0x44</span>, <span style="color:#ae81ff">0x24</span>, <span style="color:#ae81ff">0x08</span>,
+  <span style="color:#ae81ff">0x4c</span>, <span style="color:#ae81ff">0x89</span>, <span style="color:#ae81ff">0x47</span>, <span style="color:#ae81ff">0x08</span>,
+  <span style="color:#ae81ff">0x48</span>, <span style="color:#ae81ff">0x89</span>, <span style="color:#ae81ff">0x5f</span>, <span style="color:#ae81ff">0x10</span>,
+  <span style="color:#ae81ff">0x48</span>, <span style="color:#ae81ff">0x89</span>, <span style="color:#ae81ff">0x6f</span>, <span style="color:#ae81ff">0x18</span>,
+  <span style="color:#ae81ff">0x4c</span>, <span style="color:#ae81ff">0x89</span>, <span style="color:#ae81ff">0x67</span>, <span style="color:#ae81ff">0x20</span>,
+  <span style="color:#ae81ff">0x4c</span>, <span style="color:#ae81ff">0x89</span>, <span style="color:#ae81ff">0x6f</span>, <span style="color:#ae81ff">0x28</span>,
+  <span style="color:#ae81ff">0x4c</span>, <span style="color:#ae81ff">0x89</span>, <span style="color:#ae81ff">0x77</span>, <span style="color:#ae81ff">0x30</span>,
+  <span style="color:#ae81ff">0x4c</span>, <span style="color:#ae81ff">0x89</span>, <span style="color:#ae81ff">0x7f</span>, <span style="color:#ae81ff">0x38</span>,
+  <span style="color:#ae81ff">0x31</span>, <span style="color:#ae81ff">0xc0</span>,
+  <span style="color:#ae81ff">0xc3</span>
+};
+</code></pre></div><p>We&rsquo;re almost done. This will end up inside the <code>.data</code> or <code>.rodata</code> section of our binary which isn&rsquo;t an <strong>executable</strong> section. If we were to cast this array as a function type and try to call it, we&rsquo;d just crash.</p>
+<p>However, if you have a gcc or clang based compiler, you can add this single attribute before the array:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c">__attribute__((section(<span style="color:#e6db74">&#34;.text#&#34;</span>)))
+</code></pre></div><blockquote>
+<p>The <code>'#'</code> on the <code>&quot;.text&quot;</code> string is not a typo. It&rsquo;s a comment token and necessary to silent a warning.</p>
+</blockquote>
+<p>Similarly, if you&rsquo;re MSVC based, you can add the following instead:</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">#pragma section(&#34;.text&#34;)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">__declspec</span>(allocate(<span style="color:#e6db74">&#34;.text&#34;</span>))
+</code></pre></div><p>What this now does is move the array to the <code>.text</code> section of the executable instead, which is <strong>executable</strong>. Now we take a function pointer to this array of byte code.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">static</span> <span style="color:#a6e22e">void</span> (<span style="color:#f92672">*</span>get_context)(Context<span style="color:#f92672">*</span>) <span style="color:#f92672">=</span> (<span style="color:#66d9ef">void</span> (<span style="color:#f92672">*</span>)(Context<span style="color:#f92672">*</span>))get_context_code;
+</code></pre></div><p>And just like that we&rsquo;re done! No assembler needed. No build process changes needed. Just remember to document that spooky array of bytes. It&rsquo;s sure to confuse the heck out of anyone who stumbles on it.</p>
+<h2 id="considerations">
+  Considerations
+  <a class="anchor" href="#considerations">#</a>
+</h2>
+<p>When implementing fibers <strong>you will</strong> run into strange behavior which you cannot explain, this is because fibers violate the flow of control that compilers and debuggers are expecting. The side effects a fiber has on program state is not visible to the compiler or debugger, this can make reasoning and debuging this stuff quite <em>fun</em>.</p>
+<h3 id="barriers">
+  Barriers
+  <a class="anchor" href="#barriers">#</a>
+</h3>
+<p>As already shown above, this user space context switching violates the flow of control compilers are expecting and so they may optimize around it incorrectly. Similarly, when we introduce our fiber scheduler we&rsquo;ll have threads involved. As a result of this, it&rsquo;s important that any resources you have that are manipulated through fibers have appropriate compiler barriers. Function calls are full compiler barriers and so most of your application state is fine. However, anything used to control flow based on the result of a fiber resuming needs to be carefully made <code>volatile</code> so the compiler doesn&rsquo;t optimize it incorrectly.</p>
+<h3 id="debuggers">
+  Debuggers
+  <a class="anchor" href="#debuggers">#</a>
+</h3>
+<p>Some debugging tools do not enjoy having the stack pointer aimlessly changed out from underneath them. So debugging this stuff while you&rsquo;re developing it can get a little tedious, fortunately there&rsquo;s ways to mitigate this.</p>
+<h4 id="address-sanitizer">
+  Address Sanitizer
+  <a class="anchor" href="#address-sanitizer">#</a>
+</h4>
+<p>Address sanitizer will throw a fit when you switch the stack pointer, however you can teach it our new trick.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// These macros are defined by GCC and/or clang
+</span><span style="color:#75715e"></span><span style="color:#75715e">#if defined(__SANITIZE_ADDRESS__) || __has_feature(address_sanitizer)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;C&#34;</span> {
+  <span style="color:#75715e">// Check out sanitizer/asan-interface.h in compiler-rt for documentation.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">__sanitizer_start_switch_fiber</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">**</span>fake_stack_save, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>bottom, size_t size);
+  <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">__sanitizer_finish_switch_fiber</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>fake_stack_save, <span style="color:#66d9ef">const</span> <span style="color:#66d9ef">void</span> <span style="color:#f92672">**</span>bottom_old, size_t <span style="color:#f92672">*</span>size_old);
+}
+<span style="color:#75715e">#define HAS_ASAN
+</span><span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">#if defined(HAS_ASAN)
+</span><span style="color:#75715e"></span><span style="color:#75715e">// This pointer will live on this stack frame.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>fake_stack_save <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+__sanitizer_start_switch_fiber(
+  <span style="color:#f92672">&amp;</span>fake_stack_save,
+  stack_data,
+  stack_size);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// The context switch happens here in the middle.
+</span><span style="color:#75715e"></span>swap_context(old_context, new_context);
+
+<span style="color:#75715e">#if defined(HAS_ASAN)
+</span><span style="color:#75715e"></span><span style="color:#75715e">// When we return from the context switch we indicate that to ASAN.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>bottom_old <span style="color:#f92672">=</span> <span style="color:#66d9ef">nullptr</span>;
+size_t size_old <span style="color:#f92672">=</span> <span style="color:#ae81ff">0</span>;
+__sanitizer_finish_switch_fiber(
+  fake_stack_save,
+  <span style="color:#f92672">&amp;</span>bottom_old,
+  <span style="color:#f92672">&amp;</span>size_old);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// Here you can assert |bottom_old| and |size_old| are what you expect when
+</span><span style="color:#75715e">// returning to this context.
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">// You can also pass NULL for the last two arguments if you don&#39;t care.
+</span></code></pre></div>
+    </div>
+  </label>
+</div>
+
+<h4 id="thread-sanitizer">
+  Thread Sanitizer
+  <a class="anchor" href="#thread-sanitizer">#</a>
+</h4>
+<p>Like address sanitizer, thread sanitizer needs to be taught of the stack switching behavior too. Why they don&rsquo;t share the same interface is a bit annoying, but fortunately it&rsquo;s not too complicated to deal with.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">// These macros are defined by GCC and/or clang
+</span><span style="color:#75715e"></span><span style="color:#75715e">#if defined(__SANITIZER_THREAD__) || __has_feature(thread_sanitizer)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">extern</span> <span style="color:#e6db74">&#34;C&#34;</span> {
+  <span style="color:#75715e">// Check out sanitizer/tsan_interface.h in compiler-rt for documentation.
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">__tsan_get_current_fiber</span>(<span style="color:#66d9ef">void</span>);
+  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span><span style="color:#a6e22e">__tsan_create_fiber</span>(<span style="color:#66d9ef">unsigned</span> flags);
+  <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">__tsan_destroy_fiber</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>fiber);
+  <span style="color:#66d9ef">void</span> <span style="color:#a6e22e">__tsan_switch_to_fiber</span>(<span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>fiber, <span style="color:#66d9ef">unsigned</span> flags);
+}
+<span style="color:#75715e">#define HAS_TSAN
+</span><span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// This needs to be stored somewhere that the context we switch to will have
+</span><span style="color:#75715e">// access to it so it can switch back to it. This means it cannot be on this
+</span><span style="color:#75715e">// stack frame. We could store it in the stack frame of the context we switch
+</span><span style="color:#75715e">// to for example. Or we could just store it on the heap.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#if defined(HAS_TSAN)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>this_fiber <span style="color:#f92672">=</span> __tsan_get_current_fiber();
+
+<span style="color:#75715e">// Here we just make a new fiber and immediately switch to it.
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>next_fiber <span style="color:#f92672">=</span> __tsan_create_fiber(<span style="color:#ae81ff">0</span>);
+__tsan_switch_to_fiber(next_fiber, <span style="color:#66d9ef">nullptr</span>);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// The context switch happens here in the middle.
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">// It&#39;s important at this point that |old_context| and |new_context| are not
+</span><span style="color:#75715e">// on the stack, otherwise TSAN will complain since we just told it we&#39;ve
+</span><span style="color:#75715e">// switched stacks.
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">// We CANNOT call |__tsan_switch_to_fiber| as the first thing in the context we
+</span><span style="color:#75715e">// switch to. The documentation explicitly forbids this.
+</span><span style="color:#75715e"></span>swap_context(old_context, new_context);
+
+<span style="color:#75715e">// Somewhere in the context we just switch to, when switching back to this
+</span><span style="color:#75715e">// context we need to restore the fiber stored in |this_fiber|.
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">// So just before the |swap_context| we just call |__tsan_switch_to_fiber| again.
+</span><span style="color:#75715e">// this time restoring it.
+</span><span style="color:#75715e">//
+</span><span style="color:#75715e">// __tsan_switch_to_fiber(this_fiber, nullptr);
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// We&#39;ve returned from the context switch, we can now throw |this_fiber| out.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#if defined(HAS_TSAN)
+</span><span style="color:#75715e"></span>__tsan_destroy_fiber(this_fiber);
+<span style="color:#75715e">#endif
+</span></code></pre></div>
+    </div>
+  </label>
+</div>
+
+<h4 id="valgrind">
+  Valgrind
+  <a class="anchor" href="#valgrind">#</a>
+</h4>
+<p>Since Valgrind is a full CPU emulator, it does an excellent job tracking stack pointer changes, however it needs to be taught of the stack&rsquo;s size itself so it can help detect stack overflow and stack-use-after-free memory violations. This is pretty easy to do.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-cpp" data-lang="cpp"><span style="color:#75715e">#if __has_include(&lt;valgrind/valgrind.h&gt;)
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;valgrind/valgrind.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#define HAS_VALGRIND
+</span><span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// Before context switch, register our stack with Valgrind.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#if defined(HAS_VALGRIND)
+</span><span style="color:#75715e"></span><span style="color:#66d9ef">unsigned</span> stack_id <span style="color:#f92672">=</span> VALGRIND_STACK_REGISTER(stack_data, stack_data <span style="color:#f92672">+</span> stack_size);
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+<span style="color:#75715e">// The context switch happens here in the middle.
+</span><span style="color:#75715e"></span>swap_context(old_context, new_context);
+
+<span style="color:#75715e">// We&#39;ve returned from the context switch, we can now throw that stack out.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#if defined(HAS_VALGRIND)
+</span><span style="color:#75715e"></span>VALGRIND_STACK_DEREGISTER(stack_id);
+<span style="color:#75715e">#endif
+</span></code></pre></div>
+    </div>
+  </label>
+</div>
+
+<h4 id="gdb-and-lldb">
+  GDB and LLDB
+  <a class="anchor" href="#gdb-and-lldb">#</a>
+</h4>
+<p>GDB and LLDB are capable of following context switches but it&rsquo;s a bit tedious to get automatic step through debugging. Teaching GDB and LLDB how to automatically follow context switches in this way requires we implement our own SystemTap probe. The documentation on SDT probes is fickle at best and I had to piece together a bunch of information from the 
+  <a href="https://sourceware.org/legacy-ml/gdb-patches/2012-03/msg00360.html">Initial patches for GDB</a></p>
+<p>Here we&rsquo;re going to use some builtin non-local goto probes GDB and LLDB automatically recognizes for <code>longjmp</code> which are 
+  <a href="https://www.gnu.org/software/libc/manual/html_node/Non_002dlocal-Goto-Probes.html">documented here</a></p>
+<p>In particular, we&rsquo;re going to teach GDB that our <code>swap_context</code> function is an implementation of <code>longjmp</code>, which isn&rsquo;t strictly <em>true</em>, but it works. To do this we&rsquo;re going to artificially extend our <code>Context</code> structure to contain a scratch piece of memory large enough to store some <code>jmp_buf</code> structure, just to appease the debugger. This should only be done for debug builds of our context switching code since we don&rsquo;t want to make it larger than it needs to be for release.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> Context {
+  <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span><span style="color:#75715e">#ifndef NDEBUG
+</span><span style="color:#75715e"></span>  <span style="color:#66d9ef">char</span> scratch[<span style="color:#66d9ef">sizeof</span>(jmp_buf)];
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>};
+</code></pre></div><p>Now we begin to modify our <code>swap_context</code> to give it those probes.</p>
+
+<div class="book-expand">
+  <label>
+    <div class="book-expand-head flex justify-between">
+      <span>Expand code listing</span>
+      <span>↕</span>
+    </div>
+    <input type="checkbox" class="hidden" />
+    <div class="book-expand-content markdown-inner">
+      <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Note the need for the preprocessor here. This has to be assembled with the
+</span><span style="color:#75715e">// gcc or clang frontend and cannot be passed to the regular assembler.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#if __has_include(&lt;sys/sdt.h&gt;)
+</span><span style="color:#75715e">#include</span> <span style="color:#75715e">&lt;sys/sdt.h&gt;</span><span style="color:#75715e">
+</span><span style="color:#75715e">#define HAS_SDT
+</span><span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+swap_context:
+  <span style="color:#75715e"># Prologue follows
+</span><span style="color:#75715e"></span>  <span style="color:#75715e"># ...
+</span><span style="color:#75715e"></span>
+  <span style="color:#75715e">// Mark this function as a &#34;longjmp&#34; with the probe.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">//
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// %rdi contains our Context we&#39;re switching to, the +$64 is because the
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// jmp_buf is 64 bytes offset in the structure. The 8@ is because our registers
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// are 8 bytes in size.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">//
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// The $RETURN_ADDRESS is this return address when coming back from the the
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// &#34;longjmp&#34;, presumably it&#39;s calculated somewhere in the context switch code
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// and stored in a register, this is left as an exercise to the reader.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#if !defined(NDEBUG) &amp;&amp; defined(HAS_SDT)
+</span><span style="color:#75715e"></span>  STAP_PROBE3(libc, longjmp, <span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">@</span><span style="color:#f92672">%</span>rdi<span style="color:#f92672">+</span><span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">64</span>, <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>, <span style="color:#960050;background-color:#1e0010">$</span>RETURN_ADDRESS)
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+  <span style="color:#75715e">// Context switch code follows here
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+  <span style="color:#75715e">// Now we&#39;ve returned from the switch, need to inform GDB of that with
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// the other probe.
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">//
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// Same arguments as above this time.
+</span><span style="color:#75715e"></span><span style="color:#75715e">#if !defined(NDEBUG) &amp;&amp; defined(HAS_SDT)
+</span><span style="color:#75715e"></span>  STAP_PROBE3(libc, longjmp_target, <span style="color:#ae81ff">8</span><span style="color:#960050;background-color:#1e0010">@</span><span style="color:#f92672">%</span>rdi<span style="color:#f92672">+</span><span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">64</span>, <span style="color:#960050;background-color:#1e0010">$</span><span style="color:#ae81ff">0</span>, <span style="color:#960050;background-color:#1e0010">$</span>RETURN_ADDRESS)
+<span style="color:#75715e">#endif
+</span><span style="color:#75715e"></span>
+  <span style="color:#75715e">// Epilogue follows
+</span><span style="color:#75715e"></span>  <span style="color:#75715e">// ...
+</span><span style="color:#75715e"></span>
+  ret
+</code></pre></div>
+    </div>
+  </label>
+</div>
+
+<h3 id="signals">
+  Signals
+  <a class="anchor" href="#signals">#</a>
+</h3>
+<p>Signals are sent to all threads in a given process. This is problematic for fiber code because having a signal delivered while in the middle of context switching would cause complications. The usual context switching methods seen in OSes and even the stackless context switch methods in standard C (<code>setjmp</code> and <code>longjmp</code>, or specifically in the case of POSIX <code>sigsetjmp</code> and <code>siglongjmp</code>) often need to save and restore signal masks. I don&rsquo;t see why you would want fiber code to be delivered signals, so it&rsquo;s easier to just block all signals from ever being delivered to the fiber scheduler threads permanently.</p>
+<div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#75715e">// Don&#39;t permit signal delivery to this thread.
+</span><span style="color:#75715e"></span>sigset_t mask;
+sigfillset(<span style="color:#f92672">&amp;</span>mask);
+assert(pthread_sigmask(SIG_BLOCK, <span style="color:#f92672">&amp;</span>mask, nullptr) <span style="color:#f92672">==</span> <span style="color:#ae81ff">0</span> <span style="color:#f92672">&amp;&amp;</span> <span style="color:#e6db74">&#34;failed to block signals&#34;</span>);
+</code></pre></div><blockquote>
+<p>Note that signal delivery is problematic itself in multi-threaded code, never mind multi-threaded code which is changing it&rsquo;s stack pointer constantly to switch through different cooperatively scheduled fibers. You likely already block signals because of this.</p>
+</blockquote>
+<h3 id="blocking-in-the-os">
+  Blocking in the OS
+  <a class="anchor" href="#blocking-in-the-os">#</a>
+</h3>
+<p>For reasons explained earlier, blocking OS interfaces should be avoided. You&rsquo;ll be responsible for implementing your own syncronization primitives that schedule other fibers as opposed to blocking. The use of OS syncronization primitives in a fiber will lead to deadlocks. Similarly, the use of IO in a fiber is simply inefficient and we&rsquo;ll discuss ways to avoid this by implementing our own async IO and something called a <em>reactor</em>.</p>
+<h3 id="thread-local-storage">
+  Thread Local Storage
+  <a class="anchor" href="#thread-local-storage">#</a>
+</h3>
+<p>Compilers aggressively optimize the use of TLS by caching loads. Since fiber code can migrate between threads it&rsquo;s possible for the load to be stale. To prevent this from happening you should define TLS accessor functions in a separate translation unit and call the function everytime you need the value behind it.</p>
+<h2 id="implementing-mn-fibers">
+  Implementing M:N fibers
+  <a class="anchor" href="#implementing-mn-fibers">#</a>
+</h2>
+<h3 id="stack-allocator">
+  Stack allocator
+  <a class="anchor" href="#stack-allocator">#</a>
+</h3>
+<p>For fibers, general purpose memory allocation methods (e.g <code>malloc</code> or <code>new</code>) will be too slow for allocating fiber stacks relatively speaking. Upfront allocation of an arena for stacks and a free-list is not only easy to implement, it&rsquo;s ideal. You can protect the list with a simple spin-lock or you can go all out and implement a lock-free algorithm.</p>
+<p>The free-list is ideal because it naturally gives you the most recently deallocated stack on allocation. This is great for cache purposes even if you intend to replace that data. Consider for example <code>fiber B</code> reuses the stack allocation from <code>fiber A</code> which just completed, and the first thing <code>fiber B</code> does is a four byte write of an integer on the stack. That integer only represents a fraction of a cache-line, a cache-line that is likely <em>still</em> in cache. This avoids the need to go all the way to system memory just to write an integer on the stack.</p>
+<blockquote>
+<p>With very small fibers with small stacks complelting very quickly, this stack reuse has a negligible performance advantage in my benchmarks.</p>
+</blockquote>
+<p>There&rsquo;s some things to consider when allocating stacks:</p>
+<ul>
+<li>
+<p>You should delay the allocation of the stacks until the scheduler is ready to execute your fiber. If you prepare multiple fibers ahead of time you&rsquo;ll quickly burn through a lot of memory otherwise, despite the stacks being freed for reuse as fibers complete. Similarly, the above stack reuse optimization couldn&rsquo;t work otherwise.</p>
+</li>
+<li>
+<p>You should be cognisant of how much stack memory you&rsquo;re giving to your fibers. While it may seem like a little, when multiplied over tens of thousand as an example, it adds very quickly, even with the delayed allocation and reuse.</p>
+</li>
+<li>
+<p>Your fibers are not all going to need the same stack sizes, you should have multiple size classes to pick from which are multiples of each other so you can minimize memory usage and maximize on reuse.</p>
+</li>
+</ul>
+<h4 id="pinning-the-threads">
+  Pinning the threads
+  <a class="anchor" href="#pinning-the-threads">#</a>
+</h4>
+<p>It&rsquo;s important that the OS threads your scheduler is running on to schedule fibers are pinned to hardware threads, that is we don&rsquo;t want them migrating between hardware threads. There&rsquo;s a few reasons for this:</p>
+<ul>
+<li>Timing needs to be done with hardware timestamps and <strong>not</strong> clock interfaces in the OS. Hardware timestamps often drift between CPU cores (depending on the OS), and OS timing interfaces may involve system calls, which themselves invoke context switches which we want to avoid.</li>
+<li>It&rsquo;s less efficient. There&rsquo;s not much reason for our threads to migrate because we&rsquo;ll be migrating fibers ourselfs. If it&rsquo;s not obvious by now, <strong>we are the scheduler</strong>, the OS is just getting in our way.</li>
+<li>Debugging will suffer.</li>
+</ul>
+<blockquote>
+<p>Every OS tackles the process of pinning OS threads to a given hardware thread a bit differently. On Linux there is <code>pthread_setaffinity_np</code> to set affinity masks. Windows has <code>SetThreadAffinityMask</code>, etc.</p>
+</blockquote>
+<h4 id="sleeping">
+  Sleeping
+  <a class="anchor" href="#sleeping">#</a>
+</h4>
+<p>If you require <em>timed</em> sleeping primitives, you&rsquo;ll need to implement those yourself in your fiber scheduler. Dedicate a hardware thread to put asleep-fibers on the ready queue when any timed waits they&rsquo;re sleeping on expire. I would try to avoid <em>timed</em> sleeping primitives because they necessitate preemption in some form.</p>
+<h3 id="syncronization-primitives">
+  Syncronization Primitives
+  <a class="anchor" href="#syncronization-primitives">#</a>
+</h3>
+<p>You&rsquo;ll have to implement fiber-safe syncronization primitives because in M:N, fibers can migrate between threads.</p>
+<p>The basis for most of the syncronization primitives will be a spin lock. There&rsquo;s too many ways to get a spin lock implementation wrong, so you should avoid implementing one yourself unless you know what you&rsquo;re doing. There&rsquo;s excellent implementations in libraries like 
+  <a href="http://concurrencykit.org/">Concurrency Kit</a>.
+However, if you do feel like implementing one yourself. Keep in mind that the properties we&rsquo;re looking for is a lock that <strong>does not</strong> tell the OS to yield other threads. Not only is this inefficient because it would imply a context switch. It&rsquo;s wrong because the switch in the contended case needs to be a user-space fiber-thread switch and not a kernel-space OS- thread switch.</p>
+<h4 id="avoid-the-pause-instruction">
+  Avoid the PAUSE instruction
+  <a class="anchor" href="#avoid-the-pause-instruction">#</a>
+</h4>
+<p>One common trick on x86 and x86_64 for spinlocks is to use the 
+  <a href="https://c9x.me/x86/html/file_module_x86_id_232.html">PAUSE</a> instruction to hint to the processor we&rsquo;re in a spinlock. This used to be the preferred method, however modern x86 CPUs have significantly increased the latency of the PAUSE instruction.</p>
+<p>The following information can be found in the 
+  <a href="https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-optimization-manual.pdf">Intel Optimization Manual</a> in 8.4.7:</p>
+<blockquote>
+<p>The latency of PAUSE instruction in prior generation microarchitecture is about 10 cycles, whereas on Skylake microarchitecture it has been extended to as many as 140 cycles.</p>
+</blockquote>
+<blockquote>
+<p>As the PAUSE latency has been increased significantly, workloads that are sensitive to PAUSE latency will suffer some performance loss.</p>
+</blockquote>
+<p>The last sentence in particular is us. Our fibers are a workload that is sensitive to PAUSE latency. We do not want to be doing that.</p>
+<h4 id="the-general-approach">
+  The general approach
+  <a class="anchor" href="#the-general-approach">#</a>
+</h4>
+<p>The general approach to implementing the syncronization primitivies once you have a spinlock implementation is to implement mutex and condition variables. Once you have these two primitives, all other primitives can be implemented through them. Barriers, semaphores, latches, etc.</p>
+<p>There is no shortage of algorithms for implementing mutexes and condition variables. Use which ever one, just remember you <strong>do not</strong> want to wait in user or kernel space. You want to put your fiber to sleep and schedule another fiber in it&rsquo;s place.</p>
+<h3 id="fiber-local-storage">
+  Fiber Local Storage
+  <a class="anchor" href="#fiber-local-storage">#</a>
+</h3>
+<p>The context of a fiber can be extended to include a typeless store for fiber local data as a suitable replacement for TLS.</p>
+<h3 id="reactor">
+  Reactor
+  <a class="anchor" href="#reactor">#</a>
+</h3>
+<p>One of the problems fibers have as mentioned, is the inability to make calls to blocking OS interfaces, such as IO. The solution to these problems is to dedicate a thread of execution for performing nothing but blocking operations and IO on instead.</p>
+<p>The fundamental idea here can be broken down into a couple steps:</p>
+<ol>
+<li>Fiber queues the IO operation to take place.</li>
+<li>Fiber is put to sleep and yields to another fiber.</li>
+<li>Reactor thread sees the IO operation to take place and executes it.</li>
+<li>Reactor polls for completion in some way.</li>
+<li>Reactor wakes up the fiber put to sleep in step two when operation completes.</li>
+</ol>
+<p>The idea here is while the scheduler schedules other fibers during the IO period, the fiber the IO is done on never gets scheduled because it has been put to sleep. It&rsquo;s only when the reactor thread satisifes the given IO operation does that fiber get woken up again.</p>
+<p>It seems simple in practice to implement, because fundamentally it is. However, step four in particular is made complicated because every platform has a different mechanism to achieve it.</p>
+<p>POSIX has 
+  <a href="https://pubs.opengroup.org/onlinepubs/9699919799/functions/poll.html"><code>poll</code></a>. Linux has 
+  <a href="https://en.wikipedia.org/wiki/Epoll"><code>epoll</code></a> and 
+  <a href="https://kernel.dk/io_uring.pdf"><code>io_uring</code></a>. FreeBSD and macOS have 
+  <a href="https://en.wikipedia.org/wiki/Kqueue"><code>kqueue</code></a>. Windows has <code>poll</code> (but only for files, not sockets) and 
+  <a href="https://en.wikipedia.org/wiki/Input/output_completion_port"><code>IOCP</code></a>.</p>
+<p>As you can see by now, implementing this for multiple platforms requires multiple implementations of what is effectively an event loop. You can save yourself a lot of time and effort here if you pick an off the shelve event loop solution like 
+  <a href="https://libuv.org/">libuv</a>.</p>
+</article>
+ 
+      
+
+      <footer class="book-footer">
+        
+  <div class="flex flex-wrap justify-between">
+
+
+
+
+
+</div>
+
+ 
+        
+      </footer>
+
+      
+  
+ 
+
+      <label for="menu-control" class="hidden book-menu-overlay"></label>
+    </div>
+
+    
+    <aside class="book-toc">
+      
+  <nav id="TableOfContents">
+  <ul>
+    <li><a href="#disambiguation-of-terms">Disambiguation of terms.</a></li>
+    <li><a href="#what-are-fibers">What are fibers?</a></li>
+    <li><a href="#scheduling">Scheduling</a>
+      <ul>
+        <li><a href="#premptive-scheduling">Premptive scheduling</a></li>
+        <li><a href="#cooperative-scheduling">Cooperative scheduling</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-problem-with-multi-threading">The problem with multi-threading</a>
+      <ul>
+        <li><a href="#n1-and-what-it-means">N:1 and what it means</a></li>
+        <li><a href="#mn-and-what-it-means">M:N and what it means</a></li>
+      </ul>
+    </li>
+    <li><a href="#the-problem-with-thread-pools">The problem with thread pools</a>
+      <ul>
+        <li><a href="#locality-of-reference">Locality of reference</a></li>
+        <li><a href="#nested-induced-deadlocks">Nested induced deadlocks</a></li>
+      </ul>
+    </li>
+    <li><a href="#what-mn-fibers-will-solve">What M:N fibers will solve</a></li>
+    <li><a href="#what-mn-fibers-will-not-solve">What M:N fibers will not solve</a></li>
+    <li><a href="#how-not-to-implement-mn-fibers">How not to implement M:N fibers</a>
+      <ul>
+        <li><a href="#avoid-os-fiber-primitives">Avoid OS fiber primitives</a></li>
+      </ul>
+    </li>
+    <li><a href="#user-space-context-switching">User space context switching</a>
+      <ul>
+        <li><a href="#getting-the-context">Getting the context</a></li>
+        <li><a href="#setting-the-context">Setting the context</a></li>
+        <li><a href="#example-of-use">Example of use</a></li>
+        <li><a href="#making-a-context">Making a context</a></li>
+        <li><a href="#swapping-contexts">Swapping contexts</a></li>
+        <li><a href="#windows">Windows</a></li>
+        <li><a href="#integrating-into-your-build">Integrating into your build</a></li>
+      </ul>
+    </li>
+    <li><a href="#considerations">Considerations</a>
+      <ul>
+        <li><a href="#barriers">Barriers</a></li>
+        <li><a href="#debuggers">Debuggers</a></li>
+        <li><a href="#signals">Signals</a></li>
+        <li><a href="#blocking-in-the-os">Blocking in the OS</a></li>
+        <li><a href="#thread-local-storage">Thread Local Storage</a></li>
+      </ul>
+    </li>
+    <li><a href="#implementing-mn-fibers">Implementing M:N fibers</a>
+      <ul>
+        <li><a href="#stack-allocator">Stack allocator</a></li>
+        <li><a href="#syncronization-primitives">Syncronization Primitives</a></li>
+        <li><a href="#fiber-local-storage">Fiber Local Storage</a></li>
+        <li><a href="#reactor">Reactor</a></li>
+      </ul>
+    </li>
+  </ul>
+</nav>
+
+ 
+    </aside>
+    
+  </main>
+
+  
+</body>
+
+</html>
+
+
+
+
+
+
+
+
+
+
+
+
