@@ -257,7 +257,7 @@ https://github.com/alex-shpak/hugo-book
 <p>There&rsquo;s many problems related to multi-threading, most obviously that it&rsquo;s difficult to get right. Most proponents of fibers make false claims about how this problem goes away when you use fibers because you don&rsquo;t have parallel threads of execution. Instead, you have these cooperatively scheduled fibers which yield to each other. This means it&rsquo;s not possible to
   <a href="https://en.wikipedia.org/wiki/Race_condition">race data</a>,
   <a href="https://en.wikipedia.org/wiki/Deadlock">dead lock</a>,
-  <a href="https://en.wikipedia.org/wiki/Deadlock#Livelock">live lock</a>, etc. While this statement is true when you look at fibers as a M:1 proposition, the story is entierly different when you introduce M:N.</p>
+  <a href="https://en.wikipedia.org/wiki/Deadlock#Livelock">live lock</a>, etc. While this statement is true when you look at fibers as a N:1 proposition, the story is entierly different when you introduce M:N.</p>
 <h3 id="n1-and-what-it-means">
   N:1 and what it means
   <a class="anchor" href="#n1-and-what-it-means">#</a>
@@ -267,7 +267,7 @@ https://github.com/alex-shpak/hugo-book
   M:N and what it means
   <a class="anchor" href="#mn-and-what-it-means">#</a>
 </h3>
-<p>The idea behind M:N is to take the model given to us by M:1 and map it to multiple actual OS threads. Just like we&rsquo;re familiar to the concept of thread pools where we execute tasks, here we have a pool of threads where we execute fibers and those fibers get to yield more of themselves on that thread.</p>
+<p>The idea behind M:N is to take the model given to us by N:1 and map it to multiple actual OS threads. Just like we&rsquo;re familiar to the concept of thread pools where we execute tasks, here we have a pool of threads where we execute fibers and those fibers get to yield more of themselves on that thread.</p>
 <blockquote>
 <p>I should stress that M:N fibers have all the usual problems of multi-threading. You still need to syncronize access to resources shared between multiple fibers because there&rsquo;s still multiple threads.</p>
 </blockquote>
@@ -455,7 +455,7 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
 </h2>
 <ul>
 <li>
-<p>Using the M:1 approach. This
+<p>Using the N:1 approach. This
   <a href="https://github.com/facebook/folly/tree/master/folly/fibers">approach</a> is
   <a href="https://www.boost.org/doc/libs/1_72_0/libs/fiber/doc/html/index.html">seen</a> in
   <a href="https://docs.microsoft.com/en-us/windows/win32/procthread/using-fibers">countless</a> libraries. The problem with this approach is it does not take advantage of multiple hardware threads. It&rsquo;s true you can layer this ontop of threads, but in doing so you&rsquo;ll still lack all the syncronization primitives you&rsquo;re used to with threads and <strong>you cannot use OS syncronization primitives in your fibers</strong> for the reasons listed above. They&rsquo;re not designed to be used by multiple threads and adding support is likely more difficult than writing your own.</p>
