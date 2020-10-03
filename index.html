@@ -14,14 +14,14 @@
 <meta property="article:published_time" content="2020-10-03T13:15:07-04:00" />
 <meta property="article:modified_time" content="2020-10-03T13:15:07-04:00" />
 <title>Introduction | </title>
-<link rel="manifest" href="/manifest.json">
-<link rel="icon" href="/favicon.png" type="image/x-icon">
-<link rel="stylesheet" href="/book.min.66ecc3685969d1a95cdc51591e326332fae0b92cd5511935c2026b684ba33d77.css" integrity="sha256-ZuzDaFlp0alc3FFZHjJjMvrguSzVURk1wgJraEujPXc="><!--
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="favicon.png" type="image/x-icon">
+<link rel="stylesheet" href="book.min.66ecc3685969d1a95cdc51591e326332fae0b92cd5511935c2026b684ba33d77.css" integrity="sha256-ZuzDaFlp0alc3FFZHjJjMvrguSzVURk1wgJraEujPXc="><!--
 Made with Book Theme
 https://github.com/alex-shpak/hugo-book
 -->
 
-  
+
 </head>
 
 <body dir=>
@@ -29,7 +29,7 @@ https://github.com/alex-shpak/hugo-book
   <input type="checkbox" class="hidden toggle" id="toc-control" />
   <main class="container flex">
     <aside class="book-menu">
-      
+
   <nav>
 <h2 class="book-brand">
   <a href="/"><span></span>
@@ -47,7 +47,7 @@ https://github.com/alex-shpak/hugo-book
 
 
 
-  
+
 
 
 
@@ -72,12 +72,12 @@ https://github.com/alex-shpak/hugo-book
   <script>(function(){var menu=document.querySelector("aside.book-menu nav");addEventListener("beforeunload",function(event){localStorage.setItem("menu.scrollTop",menu.scrollTop);});menu.scrollTop=localStorage.getItem("menu.scrollTop");})();</script>
 
 
- 
+
     </aside>
 
     <div class="book-page">
       <header class="book-header">
-        
+
   <div class="flex align-center justify-between">
   <label for="menu-control">
     <img src="/svg/menu.svg" class="book-icon" alt="Menu" />
@@ -86,16 +86,16 @@ https://github.com/alex-shpak/hugo-book
   <strong>Introduction</strong>
 
   <label for="toc-control">
-    
+
     <img src="/svg/toc.svg" class="book-icon" alt="Table of Contents" />
-    
+
   </label>
 </div>
 
 
-  
+
   <aside class="hidden clearfix">
-    
+
   <nav id="TableOfContents">
   <ul>
     <li><a href="#disambiguation-of-terms">Disambiguation of terms.</a></li>
@@ -158,12 +158,12 @@ https://github.com/alex-shpak/hugo-book
 
 
   </aside>
-  
- 
+
+
       </header>
 
-      
-      
+
+
   <article class="markdown"><h1 id="fibers-oh-my">
   Fibers, Oh My!
   <a class="anchor" href="#fibers-oh-my">#</a>
@@ -175,8 +175,8 @@ https://github.com/alex-shpak/hugo-book
 <li>
   <a href="https://github.com/graphitemaster">GitHub</a></li>
 </ul>
-<p>It&rsquo;s been brought to the attention of many people in the game development industry that you can use fibers to parallelize your engines and games. This one presentation in particular: 
-  <a href="http://twvideo01.ubm-us.net/o1/vault/gdc2015/presentations/Gyrling_Christian_Parallelizing_The_Naughty.pdf">Parallelizing the Naughty Dog engine using fibers</a> has been a talking point since it came out in 2015. However, it doesn&rsquo;t quite go into the details enough to really explain why fibers are a good fit or how to actually implement them. In my pursuit to educate myself and take a stab at implementing them, I&rsquo;ve concluded that there&rsquo;s a distinctive lack of good information online. In response to the lack of literature on this topic, I&rsquo;ve decided to explain it from multiple angles, and provide less known information on the subject. This document serves as a 
+<p>It&rsquo;s been brought to the attention of many people in the game development industry that you can use fibers to parallelize your engines and games. This one presentation in particular:
+  <a href="http://twvideo01.ubm-us.net/o1/vault/gdc2015/presentations/Gyrling_Christian_Parallelizing_The_Naughty.pdf">Parallelizing the Naughty Dog engine using fibers</a> has been a talking point since it came out in 2015. However, it doesn&rsquo;t quite go into the details enough to really explain why fibers are a good fit or how to actually implement them. In my pursuit to educate myself and take a stab at implementing them, I&rsquo;ve concluded that there&rsquo;s a distinctive lack of good information online. In response to the lack of literature on this topic, I&rsquo;ve decided to explain it from multiple angles, and provide less known information on the subject. This document serves as a
   <a href="https://en.wikipedia.org/wiki/Sourcebook">Sourcebook</a> for those who really want to determine if it&rsquo;s a right fit for them and how to go about actually doing it.</p>
 <h2 id="disambiguation-of-terms">
   Disambiguation of terms.
@@ -215,7 +215,7 @@ https://github.com/alex-shpak/hugo-book
 </ul>
 <p>It&rsquo;s important to note that while you may observe that all processes and OS threads are running in parallel, scheduling is really providing the <em>illusion</em> of that. Not all threads are running in parallel, the scheduler is just switching between them quickly enough that it appears everything is running in parallel. That is they&rsquo;re <em>concurrent</em>. Threads start, run, and complete in an <em>interleaved</em> fashion.</p>
 <blockquote>
-<p>It is possible for multiple OS threads to be running in parallel with 
+<p>It is possible for multiple OS threads to be running in parallel with
   <a href="https://en.wikipedia.org/wiki/Symmetric_multiprocessing">symmetric multiprocessing</a> (SMP) where they&rsquo;re mapped to multiple hardware threads, but only as many hardware threads as the CPU physically has.</p>
 </blockquote>
 <h3 id="premptive-scheduling">
@@ -230,19 +230,19 @@ https://github.com/alex-shpak/hugo-book
 <li>waits (seen in locking primitives)</li>
 <li>interrupts (hardware events mostly)</li>
 </ul>
-<p>The first three in particular are often expressed by an application as a 
+<p>The first three in particular are often expressed by an application as a
   <a href="https://en.wikipedia.org/wiki/System_call">system call</a>. These system calls cause the CPU to cease executing the current code and execute the OS&rsquo;s code registered for that system call. This allows the OS to service the request then resume execution of your application&rsquo;s calling thread, or another thread entierly.</p>
-<p>This is possible because the OS will decide at one of the points listed above to save all the relevant state of that thread then resume some other thread, the idea being that when this thread can run again, the OS can reinstate that thread and continue executing it like nothing ever happened. These transition points where the OS switches a thread are called 
+<p>This is possible because the OS will decide at one of the points listed above to save all the relevant state of that thread then resume some other thread, the idea being that when this thread can run again, the OS can reinstate that thread and continue executing it like nothing ever happened. These transition points where the OS switches a thread are called
   <a href="https://en.wikipedia.org/wiki/Context_switch">context switches</a>.</p>
-<p>There&rsquo;s a cost associated with this context switching and all modern operating systems have made great deals of effort to reduce this cost as much as possible. Unfortunately, that overhead begins to show itself when you have <em>a lot</em> of threads. In addition, recent cache 
-  <a href="https://en.wikipedia.org/wiki/Side-channel_attack">side channel attacks</a> like: 
-  <a href="https://en.wikipedia.org/wiki/Spectre_%28security_vulnerability%29">Spectre</a>, 
-  <a href="https://en.wikipedia.org/wiki/Meltdown_%28security_vulnerability%29">Meltdown</a>, 
-  <a href="https://en.wikipedia.org/wiki/Spoiler_%28security_vulnerability%29">Spoiler</a>, 
-  <a href="https://en.wikipedia.org/wiki/Foreshadow_%28security_vulnerability%29">Foreshadow</a>, and 
+<p>There&rsquo;s a cost associated with this context switching and all modern operating systems have made great deals of effort to reduce this cost as much as possible. Unfortunately, that overhead begins to show itself when you have <em>a lot</em> of threads. In addition, recent cache
+  <a href="https://en.wikipedia.org/wiki/Side-channel_attack">side channel attacks</a> like:
+  <a href="https://en.wikipedia.org/wiki/Spectre_%28security_vulnerability%29">Spectre</a>,
+  <a href="https://en.wikipedia.org/wiki/Meltdown_%28security_vulnerability%29">Meltdown</a>,
+  <a href="https://en.wikipedia.org/wiki/Spoiler_%28security_vulnerability%29">Spoiler</a>,
+  <a href="https://en.wikipedia.org/wiki/Foreshadow_%28security_vulnerability%29">Foreshadow</a>, and
   <a href="https://en.wikipedia.org/wiki/Microarchitectural_Data_Sampling">Microarchitectural Data Sampling</a> on modern processors has led to a series of both user-space and kernel-space mitigation strategies, some of which increased the overhead of context switches significantly.</p>
 <blockquote>
-<p>You can read more about context switching overhead in 
+<p>You can read more about context switching overhead in
   <a href="https://www.usenix.org/legacy/events/expcs07/papers/2-li.pdf">this paper</a>.</p>
 </blockquote>
 <h3 id="cooperative-scheduling">
@@ -254,9 +254,9 @@ https://github.com/alex-shpak/hugo-book
   The problem with multi-threading
   <a class="anchor" href="#the-problem-with-multi-threading">#</a>
 </h2>
-<p>There&rsquo;s many problems related to multi-threading, most obviously that it&rsquo;s difficult to get right. Most proponents of fibers make false claims about how this problem goes away when you use fibers because you don&rsquo;t have parallel threads of execution. Instead, you have these cooperatively scheduled fibers which yield to each other. This means it&rsquo;s not possible to 
-  <a href="https://en.wikipedia.org/wiki/Race_condition">race data</a>, 
-  <a href="https://en.wikipedia.org/wiki/Deadlock">dead lock</a>, 
+<p>There&rsquo;s many problems related to multi-threading, most obviously that it&rsquo;s difficult to get right. Most proponents of fibers make false claims about how this problem goes away when you use fibers because you don&rsquo;t have parallel threads of execution. Instead, you have these cooperatively scheduled fibers which yield to each other. This means it&rsquo;s not possible to
+  <a href="https://en.wikipedia.org/wiki/Race_condition">race data</a>,
+  <a href="https://en.wikipedia.org/wiki/Deadlock">dead lock</a>,
   <a href="https://en.wikipedia.org/wiki/Deadlock#Livelock">live lock</a>, etc. While this statement is true when you look at fibers as a M:1 proposition, the story is entierly different when you introduce M:N.</p>
 <h3 id="n1-and-what-it-means">
   N:1 and what it means
@@ -395,8 +395,8 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
   <a class="anchor" href="#an-incorrect-and-often-advocated-solution">#</a>
 </h4>
 <p>There&rsquo;s some proponents that advocate that one such way to avoid these issues is to do away with the thread pool altogether and spawn threads everytime you make a job. The OS will schedule them and avoid the deadlock, when the jobs are done the threads are joined.</p>
-<p>This is actually how 
-  <a href="https://en.cppreference.com/w/cpp/thread/async"><code>std::async</code></a> works in C++ with the 
+<p>This is actually how
+  <a href="https://en.cppreference.com/w/cpp/thread/async"><code>std::async</code></a> works in C++ with the
   <a href="https://en.cppreference.com/w/cpp/thread/launch"><code>async</code></a> launch policy. It will certainly avoid the problem but it has problems which I&rsquo;ll outline here:</p>
 <ul>
 <li>
@@ -406,7 +406,7 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
 <p>There will be a lot of context switches. This many context switches is only necessary because we&rsquo;ve delegated all the scheduling to the OS when we could do a much better job ourselfs. This context switching overhead will lead to diminishing returns.</p>
 </li>
 <li>
-<p>Threads are a finite resource. If you do plan on cutting jobs real fine, it&rsquo;s very easy to see how a level with a few thousand models, handful of meshes per model, handful of materials per mesh and a handful of textures per material can quickly lead to tens of thousands of threads. With this many threads, certain security features like <code>ulimit</code> on Linux, a similar feature on Windows which has no name that I know of, and even third party monitoring services like AV software may decide to kill your process before it has finished loading the level thinking your process is a 
+<p>Threads are a finite resource. If you do plan on cutting jobs real fine, it&rsquo;s very easy to see how a level with a few thousand models, handful of meshes per model, handful of materials per mesh and a handful of textures per material can quickly lead to tens of thousands of threads. With this many threads, certain security features like <code>ulimit</code> on Linux, a similar feature on Windows which has no name that I know of, and even third party monitoring services like AV software may decide to kill your process before it has finished loading the level thinking your process is a
   <a href="https://en.wikipedia.org/wiki/Denial-of-service_attack">denial of service attack</a>.</p>
 </li>
 </ul>
@@ -446,7 +446,7 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
 <li>waits (seen in locking primitives)</li>
 </ul>
 <p>When you block a thread in one of these ways, the OS thread our fiber is on, is going to block until the blocking action completes. As a result, it&rsquo;s imperative that a fiber avoids such operations.</p>
-<p>The other thing fibers cannot solve is 
+<p>The other thing fibers cannot solve is
   <a href="https://en.wikipedia.org/wiki/Priority_inversion">Priority Inversion</a>. However, we&rsquo;ll see later that by implementing a fiber scheduler, there&rsquo;s at least some things we can do to lower the chance of it happening, something that isn&rsquo;t possible with traditional threads at all.</p>
 <p>You <strong>should not use</strong> fibers for anything that requires a realtime priority. One such example is audio mixing. If you require quick preemption and high priority scheduling, there&rsquo;s not much room in a fiber scheduler to do that as fibers are cooperatively scheduling each other. Do not move systems that require constant realtime priority to fibers, it&rsquo;s too easy to starve them.</p>
 <h2 id="how-not-to-implement-mn-fibers">
@@ -455,33 +455,33 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
 </h2>
 <ul>
 <li>
-<p>Using the M:1 approach. This 
-  <a href="https://github.com/facebook/folly/tree/master/folly/fibers">approach</a> is 
-  <a href="https://www.boost.org/doc/libs/1_72_0/libs/fiber/doc/html/index.html">seen</a> in 
+<p>Using the M:1 approach. This
+  <a href="https://github.com/facebook/folly/tree/master/folly/fibers">approach</a> is
+  <a href="https://www.boost.org/doc/libs/1_72_0/libs/fiber/doc/html/index.html">seen</a> in
   <a href="https://docs.microsoft.com/en-us/windows/win32/procthread/using-fibers">countless</a> libraries. The problem with this approach is it does not take advantage of multiple hardware threads. It&rsquo;s true you can layer this ontop of threads, but in doing so you&rsquo;ll still lack all the syncronization primitives you&rsquo;re used to with threads and <strong>you cannot use OS syncronization primitives in your fibers</strong> for the reasons listed above. They&rsquo;re not designed to be used by multiple threads and adding support is likely more difficult than writing your own.</p>
 </li>
 <li>
-<p>Use <code>setjmp</code> and <code>longjmp</code>. There&rsquo;s a 
-  <a href="https://yosefk.com/blog/coroutines-in-one-page-of-c.html">growing</a> number 
-  <a href="https://www.csl.mtu.edu/cs4411.ck/www/NOTES/non-local-goto/coroutine.html">of</a> people 
-  <a href="http://250bpm.com/blog:48">that</a> do 
+<p>Use <code>setjmp</code> and <code>longjmp</code>. There&rsquo;s a
+  <a href="https://yosefk.com/blog/coroutines-in-one-page-of-c.html">growing</a> number
+  <a href="https://www.csl.mtu.edu/cs4411.ck/www/NOTES/non-local-goto/coroutine.html">of</a> people
+  <a href="http://250bpm.com/blog:48">that</a> do
   <a href="http://www.1024cores.net/home/lock-free-algorithms/tricks/fibers">this</a>. Fibers need their own stack which this does not permit.</p>
 </li>
 </ul>
 <p>The third and more subtle mistake people make when implementing fibers is to use OS provided functionality for implementing the user-space context switching</p>
 <ul>
-<li>POSIX provides 
+<li>POSIX provides
   <a href="https://en.wikipedia.org/wiki/Setcontext"><code>setcontext</code>, <code>getcontext</code>, and <code>makecontext</code></a>.</li>
-<li>Windows provides 
+<li>Windows provides
   <a href="https://docs.microsoft.com/en-us/windows/win32/api/processthreadsapi/nf-processthreadsapi-setthreadcontext"><code>SetThreadContext</code> and <code>GetThreadContext</code></a>.</li>
-<li>Windows also provides actual Fibers 
+<li>Windows also provides actual Fibers
   <a href="https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfiber"><code>CreateFiber</code></a>.</li>
 </ul>
 <h3 id="avoid-os-fiber-primitives">
   Avoid OS fiber primitives
   <a class="anchor" href="#avoid-os-fiber-primitives">#</a>
 </h3>
-<p>One of the challenges we need to overcome in our fiber implementation is making the construction of fibers fast. Imagine you want to spawn thousands of fibers every frame, none of the OS methods allow this because they&rsquo;re required to save and restore more state than we&rsquo;re interested in. This is an area where 
+<p>One of the challenges we need to overcome in our fiber implementation is making the construction of fibers fast. Imagine you want to spawn thousands of fibers every frame, none of the OS methods allow this because they&rsquo;re required to save and restore more state than we&rsquo;re interested in. This is an area where
   <a href="https://en.wikipedia.org/wiki/Not_invented_here">NIH syndrome</a> will pay off.</p>
 <p>Even if the interfaces provided by the OS were exactly what we needed in terms of performance, they&rsquo;re made inadequate because of other more subtle issues which are often overlooked. I&rsquo;ve compiled a list of all the problems with OS provided primitives.</p>
 <h4 id="problems-with-posix">
@@ -489,12 +489,12 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
   <a class="anchor" href="#problems-with-posix">#</a>
 </h4>
 <ul>
-<li>The POSIX functions are 
-  <a href="https://pubs.opengroup.org/onlinepubs/009695399/functions/makecontext.html#tag_03_356_08">obsolescent</a> and shouldn&rsquo;t be used. Implementations of the standard library, like 
-  <a href="https://www.musl-libc.org/">musl</a> <strong>do not</strong> 
+<li>The POSIX functions are
+  <a href="https://pubs.opengroup.org/onlinepubs/009695399/functions/makecontext.html#tag_03_356_08">obsolescent</a> and shouldn&rsquo;t be used. Implementations of the standard library, like
+  <a href="https://www.musl-libc.org/">musl</a> <strong>do not</strong>
   <a href="https://wiki.musl-libc.org/open-issues.html#ucontext.h">provide the functions</a> at all since they don&rsquo;t need to.</li>
 <li>They need to make system calls (which are context switches) to save the signal mask.</li>
-<li>They need to save and restore a 
+<li>They need to save and restore a
   <a href="https://code.woboq.org/userspace/glibc/sysdeps/unix/sysv/linux/x86/sys/ucontext.h.html">large grab-bag structure</a> of state, most of which we&rsquo;re not interested in.</li>
 </ul>
 <h4 id="problems-with-windows">
@@ -502,11 +502,11 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
   <a class="anchor" href="#problems-with-windows">#</a>
 </h4>
 <ul>
-<li>The 
+<li>The
   <a href="https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfiber">CreateFiber</a> interface is responsible for allocating the stack. This means we cannot provide our own stack memory, which in turns means we cannot reuse stacks. The ability to reuse stacks will impact our performance.</li>
-<li>The 
+<li>The
   <a href="https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfiber">CreateFiber</a> interface leads you into a false sense of security by allowing you to use Windows syncronization primitives like <code>WaitForMultipleObjects</code>, which have a pathetically small limitation on the maximum number of waiters (i.e. <code>MAXIMUM_WAIT_OBJECTS = 64</code>) due to legacy limitations in the API.</li>
-<li>The <code>SetThreadContext</code> and <code>GetThreadContext</code> functions rely on a similar, 
+<li>The <code>SetThreadContext</code> and <code>GetThreadContext</code> functions rely on a similar,
   <a href="https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-arm64_nt_context">large grab-bag structure</a> of state, most of which we&rsquo;re not interested in.</li>
 </ul>
 <p>You&rsquo;ll find many other examples of similar problems for interfaces provided by your OS of choice. The fact of the matter is, because these need to be <em>generic</em> interfaces, they need to do a lot more work.</p>
@@ -514,9 +514,9 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
   User space context switching
   <a class="anchor" href="#user-space-context-switching">#</a>
 </h2>
-<p>To switch contexts in users space, we need to be able to backup certain state about the context and set the appropriate state so we can jump into that context. This is highly ABI, OS and architecture specific. I&rsquo;m going to focus on the 
-  <a href="https://wiki.osdev.org/System_V_ABI">SysV x86_64 ABI</a> on Linux and 
-  <a href="https://andreaspk.github.io/posts/2019-02-16-Windows%20Calling%20Convention.html">x64 ABI</a> on Windows, since the former is my development platform and the latter is quite similar. The ideas are the same on other platforms and you can find all the relevant documentation for what needs to be done with a bit of Googling, or you can save yourself the effort and use something like 
+<p>To switch contexts in users space, we need to be able to backup certain state about the context and set the appropriate state so we can jump into that context. This is highly ABI, OS and architecture specific. I&rsquo;m going to focus on the
+  <a href="https://wiki.osdev.org/System_V_ABI">SysV x86_64 ABI</a> on Linux and
+  <a href="https://andreaspk.github.io/posts/2019-02-16-Windows%20Calling%20Convention.html">x64 ABI</a> on Windows, since the former is my development platform and the latter is quite similar. The ideas are the same on other platforms and you can find all the relevant documentation for what needs to be done with a bit of Googling, or you can save yourself the effort and use something like
   <a href="https://github.com/boostorg/context">Boost.Context</a> which has working code for a ton of platforms. Just remember that you can beat it for performance since it has to be generic.</p>
 <h3 id="getting-the-context">
   Getting the context
@@ -696,8 +696,8 @@ set_context:
   </label>
 </div>
 
-<p>There&rsquo;s a couple problems with this code though. It&rsquo;s important to check your ABI because stack layout does require consideration. The SysV ABI in particular requires that our stack be 16-byte aligned for 
-  <a href="https://en.wikipedia.org/wiki/Streaming_SIMD_Extensions">SSE</a>. In addition to alignment, the ABI requires we also have 128 bytes of space below the stack called the 
+<p>There&rsquo;s a couple problems with this code though. It&rsquo;s important to check your ABI because stack layout does require consideration. The SysV ABI in particular requires that our stack be 16-byte aligned for
+  <a href="https://en.wikipedia.org/wiki/Streaming_SIMD_Extensions">SSE</a>. In addition to alignment, the ABI requires we also have 128 bytes of space below the stack called the
   <a href="https://en.wikipedia.org/wiki/Red_zone_%28computing%29">Red Zone</a>.</p>
 <p>The relevant modifications we need to make are included here.</p>
 
@@ -936,7 +936,7 @@ swap_context:
   <a class="anchor" href="#security">#</a>
 </h4>
 <p>MSVC <strong>for debug builds</strong> has something called <code>/RTC</code> (
-  <a href="https://docs.microsoft.com/en-us/cpp/build/reference/rtc-run-time-error-checks">Runtime-Time Error Checks</a>) which help detect stack corruption and other stack related issues. Our stack switching code does not play nice with it. In particular, I <em>believe</em> it expects the stack pointer address on each function call return be in the range defined by the 
+  <a href="https://docs.microsoft.com/en-us/cpp/build/reference/rtc-run-time-error-checks">Runtime-Time Error Checks</a>) which help detect stack corruption and other stack related issues. Our stack switching code does not play nice with it. In particular, I <em>believe</em> it expects the stack pointer address on each function call return be in the range defined by the
   <a href="https://en.wikipedia.org/wiki/Win32_Thread_Information_Block">TIB</a> which is stored in the GS segment register.</p>
 <p>We can modify our context switching functions so that we update <code>StackBase</code> and <code>StackLimit</code> to avoid this issue, or you can just outright disable <code>/RTC</code>. <code>/RTC</code> is not enabled in release builds and it precludes optimizations, so it can&rsquo;t even be realistically turned on in a release build. I left supporting this as an exercise to the reader because I&rsquo;m not exactly sure that it&rsquo;s enough to silence RTC.</p>
 <blockquote>
@@ -1215,9 +1215,9 @@ __tsan_switch_to_fiber(next_fiber, <span style="color:#66d9ef">nullptr</span>);
   GDB and LLDB
   <a class="anchor" href="#gdb-and-lldb">#</a>
 </h4>
-<p>GDB and LLDB are capable of following context switches but it&rsquo;s a bit tedious to get automatic step through debugging. Teaching GDB and LLDB how to automatically follow context switches in this way requires we implement our own SystemTap probe. The documentation on SDT probes is fickle at best and I had to piece together a bunch of information from the 
+<p>GDB and LLDB are capable of following context switches but it&rsquo;s a bit tedious to get automatic step through debugging. Teaching GDB and LLDB how to automatically follow context switches in this way requires we implement our own SystemTap probe. The documentation on SDT probes is fickle at best and I had to piece together a bunch of information from the
   <a href="https://sourceware.org/legacy-ml/gdb-patches/2012-03/msg00360.html">Initial patches for GDB</a></p>
-<p>Here we&rsquo;re going to use some builtin non-local goto probes GDB and LLDB automatically recognizes for <code>longjmp</code> which are 
+<p>Here we&rsquo;re going to use some builtin non-local goto probes GDB and LLDB automatically recognizes for <code>longjmp</code> which are
   <a href="https://www.gnu.org/software/libc/manual/html_node/Non_002dlocal-Goto-Probes.html">documented here</a></p>
 <p>In particular, we&rsquo;re going to teach GDB that our <code>swap_context</code> function is an implementation of <code>longjmp</code>, which isn&rsquo;t strictly <em>true</em>, but it works. To do this we&rsquo;re going to artificially extend our <code>Context</code> structure to contain a scratch piece of memory large enough to store some <code>jmp_buf</code> structure, just to appease the debugger. This should only be done for debug builds of our context switching code since we don&rsquo;t want to make it larger than it needs to be for release.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> Context {
@@ -1352,16 +1352,16 @@ assert(pthread_sigmask(SIG_BLOCK, <span style="color:#f92672">&amp;</span>mask, 
   <a class="anchor" href="#syncronization-primitives">#</a>
 </h3>
 <p>You&rsquo;ll have to implement fiber-safe syncronization primitives because in M:N, fibers can migrate between threads.</p>
-<p>The basis for most of the syncronization primitives will be a spin lock. There&rsquo;s too many ways to get a spin lock implementation wrong, so you should avoid implementing one yourself unless you know what you&rsquo;re doing. There&rsquo;s excellent implementations in libraries like 
+<p>The basis for most of the syncronization primitives will be a spin lock. There&rsquo;s too many ways to get a spin lock implementation wrong, so you should avoid implementing one yourself unless you know what you&rsquo;re doing. There&rsquo;s excellent implementations in libraries like
   <a href="http://concurrencykit.org/">Concurrency Kit</a>.
 However, if you do feel like implementing one yourself. Keep in mind that the properties we&rsquo;re looking for is a lock that <strong>does not</strong> tell the OS to yield other threads. Not only is this inefficient because it would imply a context switch. It&rsquo;s wrong because the switch in the contended case needs to be a user-space fiber-thread switch and not a kernel-space OS- thread switch.</p>
 <h4 id="avoid-the-pause-instruction">
   Avoid the PAUSE instruction
   <a class="anchor" href="#avoid-the-pause-instruction">#</a>
 </h4>
-<p>One common trick on x86 and x86_64 for spinlocks is to use the 
+<p>One common trick on x86 and x86_64 for spinlocks is to use the
   <a href="https://c9x.me/x86/html/file_module_x86_id_232.html">PAUSE</a> instruction to hint to the processor we&rsquo;re in a spinlock. This used to be the preferred method, however modern x86 CPUs have significantly increased the latency of the PAUSE instruction.</p>
-<p>The following information can be found in the 
+<p>The following information can be found in the
   <a href="https://www.intel.com/content/dam/www/public/us/en/documents/manuals/64-ia-32-architectures-optimization-manual.pdf">Intel Optimization Manual</a> in 8.4.7:</p>
 <blockquote>
 <p>The latency of PAUSE instruction in prior generation microarchitecture is about 10 cycles, whereas on Skylake microarchitecture it has been extended to as many as 140 cycles.</p>
@@ -1396,20 +1396,20 @@ However, if you do feel like implementing one yourself. Keep in mind that the pr
 </ol>
 <p>The idea here is while the scheduler schedules other fibers during the IO period, the fiber the IO is done on never gets scheduled because it has been put to sleep. It&rsquo;s only when the reactor thread satisifes the given IO operation does that fiber get woken up again.</p>
 <p>It seems simple in practice to implement, because fundamentally it is. However, step four in particular is made complicated because every platform has a different mechanism to achieve it.</p>
-<p>POSIX has 
-  <a href="https://pubs.opengroup.org/onlinepubs/9699919799/functions/poll.html"><code>poll</code></a>. Linux has 
-  <a href="https://en.wikipedia.org/wiki/Epoll"><code>epoll</code></a> and 
-  <a href="https://kernel.dk/io_uring.pdf"><code>io_uring</code></a>. FreeBSD and macOS have 
-  <a href="https://en.wikipedia.org/wiki/Kqueue"><code>kqueue</code></a>. Windows has <code>poll</code> (but only for files, not sockets) and 
+<p>POSIX has
+  <a href="https://pubs.opengroup.org/onlinepubs/9699919799/functions/poll.html"><code>poll</code></a>. Linux has
+  <a href="https://en.wikipedia.org/wiki/Epoll"><code>epoll</code></a> and
+  <a href="https://kernel.dk/io_uring.pdf"><code>io_uring</code></a>. FreeBSD and macOS have
+  <a href="https://en.wikipedia.org/wiki/Kqueue"><code>kqueue</code></a>. Windows has <code>poll</code> (but only for files, not sockets) and
   <a href="https://en.wikipedia.org/wiki/Input/output_completion_port"><code>IOCP</code></a>.</p>
-<p>As you can see by now, implementing this for multiple platforms requires multiple implementations of what is effectively an event loop. You can save yourself a lot of time and effort here if you pick an off the shelve event loop solution like 
+<p>As you can see by now, implementing this for multiple platforms requires multiple implementations of what is effectively an event loop. You can save yourself a lot of time and effort here if you pick an off the shelve event loop solution like
   <a href="https://libuv.org/">libuv</a>.</p>
 </article>
- 
-      
+
+
 
       <footer class="book-footer">
-        
+
   <div class="flex flex-wrap justify-between">
 
 
@@ -1418,20 +1418,20 @@ However, if you do feel like implementing one yourself. Keep in mind that the pr
 
 </div>
 
- 
-        
+
+
       </footer>
 
-      
-  
- 
+
+
+
 
       <label for="menu-control" class="hidden book-menu-overlay"></label>
     </div>
 
-    
+
     <aside class="book-toc">
-      
+
   <nav id="TableOfContents">
   <ul>
     <li><a href="#disambiguation-of-terms">Disambiguation of terms.</a></li>
@@ -1492,24 +1492,12 @@ However, if you do feel like implementing one yourself. Keep in mind that the pr
   </ul>
 </nav>
 
- 
+
     </aside>
-    
+
   </main>
 
-  
+
 </body>
 
 </html>
-
-
-
-
-
-
-
-
-
-
-
-
