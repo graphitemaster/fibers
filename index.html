@@ -4,10 +4,10 @@
 <head>
   <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<meta name="description" content="Fibers, Oh My! #  Written by Dale Weiler, last updated Oct 3rd, 2020
+<meta name="description" content="Fibers, Oh My! #  Written by Dale Weiler, last updated Oct 5th, 2020
   Twitter  GitHub  It&rsquo;s been brought to the attention of many people in the game development industry that you can use fibers to parallelize your engines and games. This one presentation in particular: Parallelizing the Naughty Dog engine using fibers has been a talking point since it came out in 2015. However, it doesn&rsquo;t quite go into the details enough to really explain why fibers are a good fit or how to actually implement them.">
 <meta name="theme-color" content="#FFFFFF"><meta property="og:title" content="Fibers, Oh My!" />
-<meta property="og:description" content="Fibers, Oh My! #  Written by Dale Weiler, last updated Oct 3rd, 2020
+<meta property="og:description" content="Fibers, Oh My! #  Written by Dale Weiler, last updated Oct 5th, 2020
   Twitter  GitHub  It&rsquo;s been brought to the attention of many people in the game development industry that you can use fibers to parallelize your engines and games. This one presentation in particular: Parallelizing the Naughty Dog engine using fibers has been a talking point since it came out in 2015. However, it doesn&rsquo;t quite go into the details enough to really explain why fibers are a good fit or how to actually implement them." />
 <meta property="og:type" content="article" />
 <meta property="og:url" content="http://example.org/" />
@@ -168,7 +168,7 @@ https://github.com/alex-shpak/hugo-book
   Fibers, Oh My!
   <a class="anchor" href="#fibers-oh-my">#</a>
 </h1>
-<p>Written by Dale Weiler, last updated Oct 3rd, 2020</p>
+<p>Written by Dale Weiler, last updated Oct 5th, 2020</p>
 <ul>
 <li>
   <a href="https://twitter.com/actualGraphite">Twitter</a></li>
@@ -201,7 +201,7 @@ https://github.com/alex-shpak/hugo-book
 <li>tasklets</li>
 <li>microthreads</li>
 </ul>
-<p>There are very few and minor differences between fibers and the above list. For the purposes of this document, we should consider them equivlant as the distinctions don&rsquo;t quite matter.</p>
+<p>There are very few and minor differences between fibers and the above list. For the purposes of this document, we should consider them equivalent as the distinctions don&rsquo;t quite matter.</p>
 <h2 id="scheduling">
   Scheduling
   <a class="anchor" href="#scheduling">#</a>
@@ -291,6 +291,7 @@ https://github.com/alex-shpak/hugo-book
 }
 </code></pre></div><p>Do you see the bug?</p>
 <p>The issue is that the string passed to <code>upload_file</code>, i.e the local <code>filename</code>, only has a lifetime of the body of the function. When this function returns, <code>filename</code> no longer is a valid string. However, at some point this lambda function will be executed and try to access <code>filename</code> in it&rsquo;s local context and it&rsquo;ll be a dangling reference by then.</p>
+<p>This can be surprsing to those more familiar with dynamic languages, since they support this functionality with something called a closure. The closure will actually extend the lifetime of <code>filename</code>. In native languages like C or C++ though, this isn&rsquo;t the case and all lifetime extension needs to be done explicitly with obvious runtime which introduces overhead.</p>
 <p>What you could do is <strong>copy</strong> the string. The copy will then have the lifetime of the lambda. However, if we had a much larger resource to share with this job that couldn&rsquo;t be as cheaply copied, we would have to use something like a <strong>reference count</strong> instead. As you can see, the solutions to the resource problem involve a great deal of overhead in many cases and requires you to really think and reason about lifetimes here when you didn&rsquo;t have to, nor should you have to.</p>
 <p>We&rsquo;re experiencing a lot of friction here already and it&rsquo;s only a few lines of code. My personal rule of thumb is if you find yourself experiencing friction like this, it&rsquo;s usually indicative of bad design and the problem needs to be rethought.</p>
 <h3 id="nested-induced-deadlocks">
@@ -803,11 +804,12 @@ swap_context:
   <a class="anchor" href="#windows">#</a>
 </h3>
 <p>As mentioned, all the above assembly is for the SysV x86_64 ABI which is great if you only care about macOS, Linux, and FreeBSD platforms.</p>
-<p>The good news is extending it for the x64 Windows ABI is quite straight forward. We do need to save and restore two additional registers (RDI and RSI) though, since they too are considered &ldquo;preserved registers&rdquo; in this ABI. The other thing that is different is the calling convention. Instead of the arguments ending up in RDI and RSI, they end up in RDX and RCX.</p>
+<p>The good news is extending it for the x64 Windows ABI is quite straight forward. We do need to save and restore some additional registers (RDI, RSI, and XMM6-XMM15) though, since they too are considered &ldquo;preserved registers&rdquo; in this ABI. The other thing that is different is the calling convention. Instead of the arguments ending up in RDI and RSI, they end up in RDX and RCX.</p>
 <p>Here&rsquo;s the patch and accompanying <code>Context</code> structure for supporting Windows.</p>
 <div class="highlight"><pre style="color:#f8f8f2;background-color:#272822;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-c" data-lang="c"><span style="color:#66d9ef">struct</span> Context {
   <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>rip, <span style="color:#f92672">*</span>rsp;
   <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>rbx, <span style="color:#f92672">*</span>rbp, <span style="color:#f92672">*</span>r12, <span style="color:#f92672">*</span>r13, <span style="color:#f92672">*</span>r14, <span style="color:#f92672">*</span>r15, <span style="color:#f92672">*</span>rdi, <span style="color:#f92672">*</span>rsi;
+  <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>xmm6, <span style="color:#f92672">*</span>xmm7, <span style="color:#f92672">*</span>xmm8, <span style="color:#f92672">*</span>xmm9, <span style="color:#f92672">*</span>xmm10, <span style="color:#f92672">*</span>xmm11, <span style="color:#f92672">*</span>xmm12, <span style="color:#f92672">*</span>xmm13, <span style="color:#f92672">*</span>xmm14, <span style="color:#f92672">*</span>xmm15;
 };
 </code></pre></div>
 <div class="book-expand">
@@ -842,6 +844,17 @@ swap_context:
 </span><span style="color:#a6e22e">+  movq %r15, 8*7(%rdx)
 </span><span style="color:#a6e22e">+  movq %rdi, 8*8(%rdx)
 </span><span style="color:#a6e22e">+  movq %rsi, 8*9(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm5, 8*10(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm6, 8*11(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm7, 8*12(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm8, 8*13(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm9, 8*14(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm10, 8*15(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm11, 8*16(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm12, 8*17(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm13, 8*18(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm14, 8*19(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm15, 8*20(%rdx)
 </span><span style="color:#a6e22e"></span>
    # Return.
    xorl %eax, %eax
@@ -871,6 +884,17 @@ swap_context:
 </span><span style="color:#a6e22e">+  movq 8*7(%rdx), %r15
 </span><span style="color:#a6e22e">+  movq 8*8(%rdx), %rdi
 </span><span style="color:#a6e22e">+  movq 8*9(%rdx), %rsi
+</span><span style="color:#a6e22e">+  movq 8*10(%rdx), %xmm5
+</span><span style="color:#a6e22e">+  movq 8*11(%rdx), %xmm6
+</span><span style="color:#a6e22e">+  movq 8*12(%rdx), %xmm7
+</span><span style="color:#a6e22e">+  movq 8*13(%rdx), %xmm8
+</span><span style="color:#a6e22e">+  movq 8*14(%rdx), %xmm9
+</span><span style="color:#a6e22e">+  movq 8*15(%rdx), %xmm10
+</span><span style="color:#a6e22e">+  movq 8*16(%rdx), %xmm11
+</span><span style="color:#a6e22e">+  movq 8*17(%rdx), %xmm12
+</span><span style="color:#a6e22e">+  movq 8*18(%rdx), %xmm13
+</span><span style="color:#a6e22e">+  movq 8*19(%rdx), %xmm14
+</span><span style="color:#a6e22e">+  movq 8*20(%rdx), %xmm15
 </span><span style="color:#a6e22e"></span>
    # Push RIP to stack for RET.
    pushq %r8
@@ -899,6 +923,17 @@ swap_context:
 </span><span style="color:#a6e22e">+  movq %r15, 8*7(%rdx)
 </span><span style="color:#a6e22e">+  movq %rdi, 8*8(%rdx)
 </span><span style="color:#a6e22e">+  movq %rsi, 8*9(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm5, 8*10(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm6, 8*11(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm7, 8*12(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm8, 8*13(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm9, 8*14(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm10, 8*15(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm11, 8*16(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm12, 8*17(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm13, 8*18(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm14, 8*19(%rdx)
+</span><span style="color:#a6e22e">+  movq %xmm15, 8*20(%rdx)
 </span><span style="color:#a6e22e"></span>
    # Should return to the address set with {get, swap}_context.
 <span style="color:#f92672">-  movq 8*0(%rsi), %r8
@@ -923,6 +958,17 @@ swap_context:
 </span><span style="color:#a6e22e">+  movq 8*7(%rcx), %r15
 </span><span style="color:#a6e22e">+  movq 8*8(%rcx), %rdi
 </span><span style="color:#a6e22e">+  movq 8*9(%rcx), %rsi
+</span><span style="color:#a6e22e">+  movq 8*10(%rcx), %xmm5
+</span><span style="color:#a6e22e">+  movq 8*11(%rcx), %xmm6
+</span><span style="color:#a6e22e">+  movq 8*12(%rcx), %xmm7
+</span><span style="color:#a6e22e">+  movq 8*13(%rcx), %xmm8
+</span><span style="color:#a6e22e">+  movq 8*14(%rcx), %xmm9
+</span><span style="color:#a6e22e">+  movq 8*15(%rcx), %xmm10
+</span><span style="color:#a6e22e">+  movq 8*16(%rcx), %xmm11
+</span><span style="color:#a6e22e">+  movq 8*17(%rcx), %xmm12
+</span><span style="color:#a6e22e">+  movq 8*18(%rcx), %xmm13
+</span><span style="color:#a6e22e">+  movq 8*19(%rcx), %xmm14
+</span><span style="color:#a6e22e">+  movq 8*20(%rcx), %xmm15
 </span><span style="color:#a6e22e"></span>
    # Push RIP to stack for RET.
    pushq %r8
@@ -1044,7 +1090,7 @@ swap_context:
   Considerations
   <a class="anchor" href="#considerations">#</a>
 </h2>
-<p>When implementing fibers <strong>you will</strong> run into strange behavior which you cannot explain, this is because fibers violate the flow of control that compilers and debuggers are expecting. The side effects a fiber has on program state is not visible to the compiler or debugger, this can make reasoning and debuging this stuff quite <em>fun</em>.</p>
+<p>When implementing fibers <strong>you will</strong> run into strange behavior which you cannot explain, this is because fibers violate the flow of control that compilers and debuggers are expecting. The side effects a fiber has on program state is not visible to the compiler or debugger, this can make reasoning and debugging this stuff quite <em>fun</em>.</p>
 <h3 id="barriers">
   Barriers
   <a class="anchor" href="#barriers">#</a>
@@ -1402,7 +1448,7 @@ However, if you do feel like implementing one yourself. Keep in mind that the pr
   <a href="https://kernel.dk/io_uring.pdf"><code>io_uring</code></a>. FreeBSD and macOS have
   <a href="https://en.wikipedia.org/wiki/Kqueue"><code>kqueue</code></a>. Windows has <code>poll</code> (but only for files, not sockets) and
   <a href="https://en.wikipedia.org/wiki/Input/output_completion_port"><code>IOCP</code></a>.</p>
-<p>As you can see by now, implementing this for multiple platforms requires multiple implementations of what is effectively an event loop. You can save yourself a lot of time and effort here if you pick an off the shelve event loop solution like
+<p>As you can see by now, implementing this for multiple platforms requires multiple implementations of what is effectively an event loop. You can save yourself a lot of time and effort here if you pick an off-the-shelf event loop solution like
   <a href="https://libuv.org/">libuv</a>.</p>
 </article>
 
