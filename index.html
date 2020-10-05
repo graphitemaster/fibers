@@ -883,16 +883,16 @@ swap_context:
 </span><span style="color:#a6e22e">+  movq 8*7(%rdx), %r15
 </span><span style="color:#a6e22e">+  movq 8*8(%rdx), %rdi
 </span><span style="color:#a6e22e">+  movq 8*9(%rdx), %rsi
-</span><span style="color:#a6e22e">+  movq 8*10+16*0(%rdx), %xmm6
-</span><span style="color:#a6e22e">+  movq 8*10+16*1(%rdx), %xmm7
-</span><span style="color:#a6e22e">+  movq 8*10+16*2(%rdx), %xmm8
-</span><span style="color:#a6e22e">+  movq 8*10+16*3(%rdx), %xmm9
-</span><span style="color:#a6e22e">+  movq 8*10+16*4(%rdx), %xmm10
-</span><span style="color:#a6e22e">+  movq 8*10+16*5(%rdx), %xmm11
-</span><span style="color:#a6e22e">+  movq 8*10+16*6(%rdx), %xmm12
-</span><span style="color:#a6e22e">+  movq 8*10+16*7(%rdx), %xmm13
-</span><span style="color:#a6e22e">+  movq 8*10+16*8(%rdx), %xmm14
-</span><span style="color:#a6e22e">+  movq 8*10+16*9(%rdx), %xmm15
+</span><span style="color:#a6e22e">+  movups 8*10+16*0(%rdx), %xmm6
+</span><span style="color:#a6e22e">+  movups 8*10+16*1(%rdx), %xmm7
+</span><span style="color:#a6e22e">+  movups 8*10+16*2(%rdx), %xmm8
+</span><span style="color:#a6e22e">+  movups 8*10+16*3(%rdx), %xmm9
+</span><span style="color:#a6e22e">+  movups 8*10+16*4(%rdx), %xmm10
+</span><span style="color:#a6e22e">+  movups 8*10+16*5(%rdx), %xmm11
+</span><span style="color:#a6e22e">+  movups 8*10+16*6(%rdx), %xmm12
+</span><span style="color:#a6e22e">+  movups 8*10+16*7(%rdx), %xmm13
+</span><span style="color:#a6e22e">+  movups 8*10+16*8(%rdx), %xmm14
+</span><span style="color:#a6e22e">+  movups 8*10+16*9(%rdx), %xmm15
 </span><span style="color:#a6e22e"></span>
    # Push RIP to stack for RET.
    pushq %r8
@@ -921,16 +921,16 @@ swap_context:
 </span><span style="color:#a6e22e">+  movq %r15, 8*7(%rdx)
 </span><span style="color:#a6e22e">+  movq %rdi, 8*8(%rdx)
 </span><span style="color:#a6e22e">+  movq %rsi, 8*9(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm6, 8*10+16*0(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm7, 8*10+16*1(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm8, 8*10+16*2(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm9, 8*10+16*3(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm10, 8*10+16*4(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm11, 8*10+16*5(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm12, 8*10+16*6(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm13, 8*10+16*7(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm14, 8*10+16*8(%rdx)
-</span><span style="color:#a6e22e">+  movq %xmm15, 8*10+16*9(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm6, 8*10+16*0(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm7, 8*10+16*1(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm8, 8*10+16*2(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm9, 8*10+16*3(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm10, 8*10+16*4(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm11, 8*10+16*5(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm12, 8*10+16*6(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm13, 8*10+16*7(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm14, 8*10+16*8(%rdx)
+</span><span style="color:#a6e22e">+  movups %xmm15, 8*10+16*9(%rdx)
 </span><span style="color:#a6e22e"></span>
    # Should return to the address set with {get, swap}_context.
 <span style="color:#f92672">-  movq 8*0(%rsi), %r8
@@ -955,16 +955,16 @@ swap_context:
 </span><span style="color:#a6e22e">+  movq 8*7(%rcx), %r15
 </span><span style="color:#a6e22e">+  movq 8*8(%rcx), %rdi
 </span><span style="color:#a6e22e">+  movq 8*9(%rcx), %rsi
-</span><span style="color:#a6e22e">+  movq 8*10+16*0(%rcx), %xmm6
-</span><span style="color:#a6e22e">+  movq 8*10+16*1(%rcx), %xmm7
-</span><span style="color:#a6e22e">+  movq 8*10+16*2(%rcx), %xmm8
-</span><span style="color:#a6e22e">+  movq 8*10+16*3(%rcx), %xmm9
-</span><span style="color:#a6e22e">+  movq 8*10+16*4(%rcx), %xmm10
-</span><span style="color:#a6e22e">+  movq 8*10+16*5(%rcx), %xmm11
-</span><span style="color:#a6e22e">+  movq 8*10+16*6(%rcx), %xmm12
-</span><span style="color:#a6e22e">+  movq 8*10+16*7(%rcx), %xmm13
-</span><span style="color:#a6e22e">+  movq 8*10+16*8(%rcx), %xmm14
-</span><span style="color:#a6e22e">+  movq 8*10+16*9(%rcx), %xmm15
+</span><span style="color:#a6e22e">+  movups 8*10+16*0(%rcx), %xmm6
+</span><span style="color:#a6e22e">+  movups 8*10+16*1(%rcx), %xmm7
+</span><span style="color:#a6e22e">+  movups 8*10+16*2(%rcx), %xmm8
+</span><span style="color:#a6e22e">+  movups 8*10+16*3(%rcx), %xmm9
+</span><span style="color:#a6e22e">+  movups 8*10+16*4(%rcx), %xmm10
+</span><span style="color:#a6e22e">+  movups 8*10+16*5(%rcx), %xmm11
+</span><span style="color:#a6e22e">+  movups 8*10+16*6(%rcx), %xmm12
+</span><span style="color:#a6e22e">+  movups 8*10+16*7(%rcx), %xmm13
+</span><span style="color:#a6e22e">+  movups 8*10+16*8(%rcx), %xmm14
+</span><span style="color:#a6e22e">+  movups 8*10+16*9(%rcx), %xmm15
 </span><span style="color:#a6e22e"></span>
    # Push RIP to stack for RET.
    pushq %r8
