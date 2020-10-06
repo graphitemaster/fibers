@@ -102,7 +102,7 @@ https://github.com/alex-shpak/hugo-book
     <li><a href="#what-are-fibers">What are fibers?</a></li>
     <li><a href="#scheduling">Scheduling</a>
       <ul>
-        <li><a href="#premptive-scheduling">Premptive scheduling</a></li>
+        <li><a href="#preemptive-scheduling">Preemptive scheduling</a></li>
         <li><a href="#cooperative-scheduling">Cooperative scheduling</a></li>
       </ul>
     </li>
@@ -148,7 +148,7 @@ https://github.com/alex-shpak/hugo-book
     <li><a href="#implementing-mn-fibers">Implementing M:N fibers</a>
       <ul>
         <li><a href="#stack-allocator">Stack allocator</a></li>
-        <li><a href="#syncronization-primitives">Syncronization Primitives</a></li>
+        <li><a href="#synchronization-primitives">synchronization Primitives</a></li>
         <li><a href="#fiber-local-storage">Fiber Local Storage</a></li>
         <li><a href="#reactor">Reactor</a></li>
       </ul>
@@ -218,9 +218,9 @@ https://github.com/alex-shpak/hugo-book
 <p>It is possible for multiple OS threads to be running in parallel with
   <a href="https://en.wikipedia.org/wiki/Symmetric_multiprocessing">symmetric multiprocessing</a> (SMP) where they&rsquo;re mapped to multiple hardware threads, but only as many hardware threads as the CPU physically has.</p>
 </blockquote>
-<h3 id="premptive-scheduling">
-  Premptive scheduling
-  <a class="anchor" href="#premptive-scheduling">#</a>
+<h3 id="preemptive-scheduling">
+  Preemptive scheduling
+  <a class="anchor" href="#preemptive-scheduling">#</a>
 </h3>
 <p>Most people familiar with threads know that you don&rsquo;t have to <strong>yield</strong> to other threads to allow them to run. This is because most operating systems (OS) schedule threads <strong>preemptively</strong>.</p>
 <p>The points at which the OS may decide to preempt a thread include:</p>
@@ -231,7 +231,7 @@ https://github.com/alex-shpak/hugo-book
 <li>interrupts (hardware events mostly)</li>
 </ul>
 <p>The first three in particular are often expressed by an application as a
-  <a href="https://en.wikipedia.org/wiki/System_call">system call</a>. These system calls cause the CPU to cease executing the current code and execute the OS&rsquo;s code registered for that system call. This allows the OS to service the request then resume execution of your application&rsquo;s calling thread, or another thread entierly.</p>
+  <a href="https://en.wikipedia.org/wiki/System_call">system call</a>. These system calls cause the CPU to cease executing the current code and execute the OS&rsquo;s code registered for that system call. This allows the OS to service the request then resume execution of your application&rsquo;s calling thread, or another thread entirely.</p>
 <p>This is possible because the OS will decide at one of the points listed above to save all the relevant state of that thread then resume some other thread, the idea being that when this thread can run again, the OS can reinstate that thread and continue executing it like nothing ever happened. These transition points where the OS switches a thread are called
   <a href="https://en.wikipedia.org/wiki/Context_switch">context switches</a>.</p>
 <p>There&rsquo;s a cost associated with this context switching and all modern operating systems have made great deals of effort to reduce this cost as much as possible. Unfortunately, that overhead begins to show itself when you have <em>a lot</em> of threads. In addition, recent cache
@@ -249,7 +249,7 @@ https://github.com/alex-shpak/hugo-book
   Cooperative scheduling
   <a class="anchor" href="#cooperative-scheduling">#</a>
 </h3>
-<p>This idea of fibers yielding to each other is what is known as cooperative scheduling. Fibers effectively move the idea of context switching from kernel-space to user-space and then make those switches a fundamental part of computation, that is, they&rsquo;re a deliberate and explicitly done thing, by the fibers themselves. The benefit of this is that a lot of the previously mentioned overhead can be entierly eliminated while still permitting an excess count of threads of execution, just in the form of these fibers now.</p>
+<p>This idea of fibers yielding to each other is what is known as cooperative scheduling. Fibers effectively move the idea of context switching from kernel-space to user-space and then make those switches a fundamental part of computation, that is, they&rsquo;re a deliberate and explicitly done thing, by the fibers themselves. The benefit of this is that a lot of the previously mentioned overhead can be entirely eliminated while still permitting an excess count of threads of execution, just in the form of these fibers now.</p>
 <h2 id="the-problem-with-multi-threading">
   The problem with multi-threading
   <a class="anchor" href="#the-problem-with-multi-threading">#</a>
@@ -257,7 +257,7 @@ https://github.com/alex-shpak/hugo-book
 <p>There&rsquo;s many problems related to multi-threading, most obviously that it&rsquo;s difficult to get right. Most proponents of fibers make false claims about how this problem goes away when you use fibers because you don&rsquo;t have parallel threads of execution. Instead, you have these cooperatively scheduled fibers which yield to each other. This means it&rsquo;s not possible to
   <a href="https://en.wikipedia.org/wiki/Race_condition">race data</a>,
   <a href="https://en.wikipedia.org/wiki/Deadlock">dead lock</a>,
-  <a href="https://en.wikipedia.org/wiki/Deadlock#Livelock">live lock</a>, etc. While this statement is true when you look at fibers as a N:1 proposition, the story is entierly different when you introduce M:N.</p>
+  <a href="https://en.wikipedia.org/wiki/Deadlock#Livelock">live lock</a>, etc. While this statement is true when you look at fibers as a N:1 proposition, the story is entirely different when you introduce M:N.</p>
 <h3 id="n1-and-what-it-means">
   N:1 and what it means
   <a class="anchor" href="#n1-and-what-it-means">#</a>
@@ -269,7 +269,7 @@ https://github.com/alex-shpak/hugo-book
 </h3>
 <p>The idea behind M:N is to take the model given to us by N:1 and map it to multiple actual OS threads. Just like we&rsquo;re familiar to the concept of thread pools where we execute tasks, here we have a pool of threads where we execute fibers and those fibers get to yield more of themselves on that thread.</p>
 <blockquote>
-<p>I should stress that M:N fibers have all the usual problems of multi-threading. You still need to syncronize access to resources shared between multiple fibers because there&rsquo;s still multiple threads.</p>
+<p>I should stress that M:N fibers have all the usual problems of multi-threading. You still need to synchronize access to resources shared between multiple fibers because there&rsquo;s still multiple threads.</p>
 </blockquote>
 <h2 id="the-problem-with-thread-pools">
   The problem with thread pools
@@ -291,7 +291,7 @@ https://github.com/alex-shpak/hugo-book
 }
 </code></pre></div><p>Do you see the bug?</p>
 <p>The issue is that the string passed to <code>upload_file</code>, i.e the local <code>filename</code>, only has a lifetime of the body of the function. When this function returns, <code>filename</code> no longer is a valid string. However, at some point this lambda function will be executed and try to access <code>filename</code> in it&rsquo;s local context and it&rsquo;ll be a dangling reference by then.</p>
-<p>This can be surprsing to those more familiar with dynamic languages, since they support this functionality with something called a closure. The closure will actually extend the lifetime of <code>filename</code>. In native languages like C or C++ though, this isn&rsquo;t the case and all lifetime extension needs to be done explicitly with obvious runtime which introduces overhead.</p>
+<p>This can be surprising to those more familiar with dynamic languages, since they support this functionality with something called a closure. The closure will actually extend the lifetime of <code>filename</code>. In native languages like C or C++ though, this isn&rsquo;t the case and all lifetime extension needs to be done explicitly with obvious runtime which introduces overhead.</p>
 <p>What you could do is <strong>copy</strong> the string. The copy will then have the lifetime of the lambda. However, if we had a much larger resource to share with this job that couldn&rsquo;t be as cheaply copied, we would have to use something like a <strong>reference count</strong> instead. As you can see, the solutions to the resource problem involve a great deal of overhead in many cases and requires you to really think and reason about lifetimes here when you didn&rsquo;t have to, nor should you have to.</p>
 <p>We&rsquo;re experiencing a lot of friction here already and it&rsquo;s only a few lines of code. My personal rule of thumb is if you find yourself experiencing friction like this, it&rsquo;s usually indicative of bad design and the problem needs to be rethought.</p>
 <h3 id="nested-induced-deadlocks">
@@ -382,11 +382,11 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
 <ul>
 <li>Code organization will suffer.</li>
 <li>Violation of SoC (separation of concerns.)</li>
-<li>Code duplication to permit the use of the fuctions outside of level loading.</li>
+<li>Code duplication to permit the use of the functions outside of level loading.</li>
 <li>Fragile interfaces with complicated rules about how they&rsquo;re called, such as;
 <ul>
 <li>Only being allowed to call interfaces on certain threads and not others.</li>
-<li>Management of resources require intricate and explict care.</li>
+<li>Management of resources require intricate and explicit care.</li>
 </ul>
 </li>
 </ul>
@@ -404,7 +404,7 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
 <p>Thread construction has overhead. The primary motivation behind thread pools to begin with is to eliminate the cost of thread construction. This overhead will have diminishing returns if you cut your jobs too fine and we&rsquo;ll see later that cutting jobs real fine isn&rsquo;t only possible with fibers, but that it&rsquo;s actually encouraged.</p>
 </li>
 <li>
-<p>There will be a lot of context switches. This many context switches is only necessary because we&rsquo;ve delegated all the scheduling to the OS when we could do a much better job ourselfs. This context switching overhead will lead to diminishing returns.</p>
+<p>There will be a lot of context switches. This many context switches is only necessary because we&rsquo;ve delegated all the scheduling to the OS when we could do a much better job ourselves. This context switching overhead will lead to diminishing returns.</p>
 </li>
 <li>
 <p>Threads are a finite resource. If you do plan on cutting jobs real fine, it&rsquo;s very easy to see how a level with a few thousand models, handful of meshes per model, handful of materials per mesh and a handful of textures per material can quickly lead to tens of thousands of threads. With this many threads, certain security features like <code>ulimit</code> on Linux, a similar feature on Windows which has no name that I know of, and even third party monitoring services like AV software may decide to kill your process before it has finished loading the level thinking your process is a
@@ -459,7 +459,7 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
 <p>Using the N:1 approach. This
   <a href="https://github.com/facebook/folly/tree/master/folly/fibers">approach</a> is
   <a href="https://www.boost.org/doc/libs/1_72_0/libs/fiber/doc/html/index.html">seen</a> in
-  <a href="https://docs.microsoft.com/en-us/windows/win32/procthread/using-fibers">countless</a> libraries. The problem with this approach is it does not take advantage of multiple hardware threads. It&rsquo;s true you can layer this ontop of threads, but in doing so you&rsquo;ll still lack all the syncronization primitives you&rsquo;re used to with threads and <strong>you cannot use OS syncronization primitives in your fibers</strong> for the reasons listed above. They&rsquo;re not designed to be used by multiple threads and adding support is likely more difficult than writing your own.</p>
+  <a href="https://docs.microsoft.com/en-us/windows/win32/procthread/using-fibers">countless</a> libraries. The problem with this approach is it does not take advantage of multiple hardware threads. It&rsquo;s true you can layer this ontop of threads, but in doing so you&rsquo;ll still lack all the synchronization primitives you&rsquo;re used to with threads and <strong>you cannot use OS synchronization primitives in your fibers</strong> for the reasons listed above. They&rsquo;re not designed to be used by multiple threads and adding support is likely more difficult than writing your own.</p>
 </li>
 <li>
 <p>Use <code>setjmp</code> and <code>longjmp</code>. There&rsquo;s a
@@ -506,7 +506,7 @@ Model <span style="color:#a6e22e">load_model</span>(<span style="color:#66d9ef">
 <li>The
   <a href="https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfiber">CreateFiber</a> interface is responsible for allocating the stack. This means we cannot provide our own stack memory, which in turns means we cannot reuse stacks. The ability to reuse stacks will impact our performance.</li>
 <li>The
-  <a href="https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfiber">CreateFiber</a> interface leads you into a false sense of security by allowing you to use Windows syncronization primitives like <code>WaitForMultipleObjects</code>, which have a pathetically small limitation on the maximum number of waiters (i.e. <code>MAXIMUM_WAIT_OBJECTS = 64</code>) due to legacy limitations in the API.</li>
+  <a href="https://docs.microsoft.com/en-us/windows/win32/api/winbase/nf-winbase-createfiber">CreateFiber</a> interface leads you into a false sense of security by allowing you to use Windows synchronization primitives like <code>WaitForMultipleObjects</code>, which have a pathetically small limitation on the maximum number of waiters (i.e. <code>MAXIMUM_WAIT_OBJECTS = 64</code>) due to legacy limitations in the API.</li>
 <li>The <code>SetThreadContext</code> and <code>GetThreadContext</code> functions rely on a similar,
   <a href="https://docs.microsoft.com/en-us/windows/win32/api/winnt/ns-winnt-arm64_nt_context">large grab-bag structure</a> of state, most of which we&rsquo;re not interested in.</li>
 </ul>
@@ -566,7 +566,7 @@ get_context:
   <span style="color:#66d9ef">void</span> <span style="color:#f92672">*</span>rbx, <span style="color:#f92672">*</span>rbp, <span style="color:#f92672">*</span>r12, <span style="color:#f92672">*</span>r13, <span style="color:#f92672">*</span>r14, <span style="color:#f92672">*</span>r15;
 };
 </code></pre></div><blockquote>
-<p>Take note that this <code>Context</code> structure isn&rsquo;t a large grab-bag of state like the OS provided interfaces. We have a total of 64 bytes to save and restore for context switches, which convienently fits in a singlle cache line. Similarly, we only need 12 instructions to save the context and 11 instructions to restore it. This is as fast as it gets.</p>
+<p>Take note that this <code>Context</code> structure isn&rsquo;t a large grab-bag of state like the OS provided interfaces. We have a total of 64 bytes to save and restore for context switches, which conveniently fits in a single cache line. Similarly, we only need 12 instructions to save the context and 11 instructions to restore it. This is as fast as it gets.</p>
 </blockquote>
 <h3 id="setting-the-context">
   Setting the context
@@ -999,7 +999,7 @@ swap_context:
   <a class="anchor" href="#just-use-cc">#</a>
 </h4>
 <p>One trick that apparently few people know about is that you can write assembler in almost-standard C and C++ without an inline assembler. I thought of this trick while writing this sourcebook and discovered to my surprise not only is it possible, it&rsquo;s perfect for this.</p>
-<p>We&rsquo;re not going to be making any real changes to our assembly source, this isn&rsquo;t something that will require future maintaince. This is a one and done deal, so why don&rsquo;t we just assemble it offline with what ever assembler we want, get a small byte code listing and embed that into our C/C++ source code directly as a byte array?</p>
+<p>We&rsquo;re not going to be making any real changes to our assembly source, this isn&rsquo;t something that will require future maintenance. This is a one and done deal, so why don&rsquo;t we just assemble it offline with what ever assembler we want, get a small byte code listing and embed that into our C/C++ source code directly as a byte array?</p>
 <p>Take the <code>get_context</code> function from earlier</p>
 
 <div class="book-expand">
@@ -1340,7 +1340,7 @@ assert(pthread_sigmask(SIG_BLOCK, <span style="color:#f92672">&amp;</span>mask, 
   Blocking in the OS
   <a class="anchor" href="#blocking-in-the-os">#</a>
 </h3>
-<p>For reasons explained earlier, blocking OS interfaces should be avoided. You&rsquo;ll be responsible for implementing your own syncronization primitives that schedule other fibers as opposed to blocking. The use of OS syncronization primitives in a fiber will lead to deadlocks. Similarly, the use of IO in a fiber is simply inefficient and we&rsquo;ll discuss ways to avoid this by implementing our own async IO and something called a <em>reactor</em>.</p>
+<p>For reasons explained earlier, blocking OS interfaces should be avoided. You&rsquo;ll be responsible for implementing your own synchronization primitives that schedule other fibers as opposed to blocking. The use of OS synchronization primitives in a fiber will lead to deadlocks. Similarly, the use of IO in a fiber is simply inefficient and we&rsquo;ll discuss ways to avoid this by implementing our own async IO and something called a <em>reactor</em>.</p>
 <h3 id="thread-local-storage">
   Thread Local Storage
   <a class="anchor" href="#thread-local-storage">#</a>
@@ -1357,7 +1357,7 @@ assert(pthread_sigmask(SIG_BLOCK, <span style="color:#f92672">&amp;</span>mask, 
 <p>For fibers, general purpose memory allocation methods (e.g <code>malloc</code> or <code>new</code>) will be too slow for allocating fiber stacks relatively speaking. Upfront allocation of an arena for stacks and a free-list is not only easy to implement, it&rsquo;s ideal. You can protect the list with a simple spin-lock or you can go all out and implement a lock-free algorithm.</p>
 <p>The free-list is ideal because it naturally gives you the most recently deallocated stack on allocation. This is great for cache purposes even if you intend to replace that data. Consider for example <code>fiber B</code> reuses the stack allocation from <code>fiber A</code> which just completed, and the first thing <code>fiber B</code> does is a four byte write of an integer on the stack. That integer only represents a fraction of a cache-line, a cache-line that is likely <em>still</em> in cache. This avoids the need to go all the way to system memory just to write an integer on the stack.</p>
 <blockquote>
-<p>With very small fibers with small stacks complelting very quickly, this stack reuse has a negligible performance advantage in my benchmarks.</p>
+<p>With very small fibers with small stacks completing very quickly, this stack reuse has a negligible performance advantage in my benchmarks.</p>
 </blockquote>
 <p>There&rsquo;s some things to consider when allocating stacks:</p>
 <ul>
@@ -1378,7 +1378,7 @@ assert(pthread_sigmask(SIG_BLOCK, <span style="color:#f92672">&amp;</span>mask, 
 <p>It&rsquo;s important that the OS threads your scheduler is running on to schedule fibers are pinned to hardware threads, that is we don&rsquo;t want them migrating between hardware threads. There&rsquo;s a few reasons for this:</p>
 <ul>
 <li>Timing needs to be done with hardware timestamps and <strong>not</strong> clock interfaces in the OS. Hardware timestamps often drift between CPU cores (depending on the OS), and OS timing interfaces may involve system calls, which themselves invoke context switches which we want to avoid.</li>
-<li>It&rsquo;s less efficient. There&rsquo;s not much reason for our threads to migrate because we&rsquo;ll be migrating fibers ourselfs. If it&rsquo;s not obvious by now, <strong>we are the scheduler</strong>, the OS is just getting in our way.</li>
+<li>It&rsquo;s less efficient. There&rsquo;s not much reason for our threads to migrate because we&rsquo;ll be migrating fibers ourselves. If it&rsquo;s not obvious by now, <strong>we are the scheduler</strong>, the OS is just getting in our way.</li>
 <li>Debugging will suffer.</li>
 </ul>
 <blockquote>
@@ -1389,12 +1389,12 @@ assert(pthread_sigmask(SIG_BLOCK, <span style="color:#f92672">&amp;</span>mask, 
   <a class="anchor" href="#sleeping">#</a>
 </h4>
 <p>If you require <em>timed</em> sleeping primitives, you&rsquo;ll need to implement those yourself in your fiber scheduler. Dedicate a hardware thread to put asleep-fibers on the ready queue when any timed waits they&rsquo;re sleeping on expire. I would try to avoid <em>timed</em> sleeping primitives because they necessitate preemption in some form.</p>
-<h3 id="syncronization-primitives">
-  Syncronization Primitives
-  <a class="anchor" href="#syncronization-primitives">#</a>
+<h3 id="synchronization-primitives">
+  Synchronization Primitives
+  <a class="anchor" href="#synchronization-primitives">#</a>
 </h3>
-<p>You&rsquo;ll have to implement fiber-safe syncronization primitives because in M:N, fibers can migrate between threads.</p>
-<p>The basis for most of the syncronization primitives will be a spin lock. There&rsquo;s too many ways to get a spin lock implementation wrong, so you should avoid implementing one yourself unless you know what you&rsquo;re doing. There&rsquo;s excellent implementations in libraries like
+<p>You&rsquo;ll have to implement fiber-safe synchronization primitives because in M:N, fibers can migrate between threads.</p>
+<p>The basis for most of the synchronization primitives will be a spin lock. There&rsquo;s too many ways to get a spin lock implementation wrong, so you should avoid implementing one yourself unless you know what you&rsquo;re doing. There&rsquo;s excellent implementations in libraries like
   <a href="http://concurrencykit.org/">Concurrency Kit</a>.
 However, if you do feel like implementing one yourself. Keep in mind that the properties we&rsquo;re looking for is a lock that <strong>does not</strong> tell the OS to yield other threads. Not only is this inefficient because it would imply a context switch. It&rsquo;s wrong because the switch in the contended case needs to be a user-space fiber-thread switch and not a kernel-space OS- thread switch.</p>
 <h4 id="avoid-the-pause-instruction">
@@ -1416,7 +1416,7 @@ However, if you do feel like implementing one yourself. Keep in mind that the pr
   The general approach
   <a class="anchor" href="#the-general-approach">#</a>
 </h4>
-<p>The general approach to implementing the syncronization primitivies once you have a spinlock implementation is to implement mutex and condition variables. Once you have these two primitives, all other primitives can be implemented through them. Barriers, semaphores, latches, etc.</p>
+<p>The general approach to implementing the synchronization primitives once you have a spinlock implementation is to implement mutex and condition variables. Once you have these two primitives, all other primitives can be implemented through them. Barriers, semaphores, latches, etc.</p>
 <p>There is no shortage of algorithms for implementing mutexes and condition variables. Use which ever one, just remember you <strong>do not</strong> want to wait in user or kernel space. You want to put your fiber to sleep and schedule another fiber in it&rsquo;s place.</p>
 <h3 id="fiber-local-storage">
   Fiber Local Storage
@@ -1436,7 +1436,7 @@ However, if you do feel like implementing one yourself. Keep in mind that the pr
 <li>Reactor polls for completion in some way.</li>
 <li>Reactor wakes up the fiber put to sleep in step two when operation completes.</li>
 </ol>
-<p>The idea here is while the scheduler schedules other fibers during the IO period, the fiber the IO is done on never gets scheduled because it has been put to sleep. It&rsquo;s only when the reactor thread satisifes the given IO operation does that fiber get woken up again.</p>
+<p>The idea here is while the scheduler schedules other fibers during the IO period, the fiber the IO is done on never gets scheduled because it has been put to sleep. It&rsquo;s only when the reactor thread satisfies the given IO operation does that fiber get woken up again.</p>
 <p>It seems simple in practice to implement, because fundamentally it is. However, step four in particular is made complicated because every platform has a different mechanism to achieve it.</p>
 <p>POSIX has
   <a href="https://pubs.opengroup.org/onlinepubs/9699919799/functions/poll.html"><code>poll</code></a>. Linux has
@@ -1480,7 +1480,7 @@ However, if you do feel like implementing one yourself. Keep in mind that the pr
     <li><a href="#what-are-fibers">What are fibers?</a></li>
     <li><a href="#scheduling">Scheduling</a>
       <ul>
-        <li><a href="#premptive-scheduling">Premptive scheduling</a></li>
+        <li><a href="#preemptive-scheduling">Preemptive scheduling</a></li>
         <li><a href="#cooperative-scheduling">Cooperative scheduling</a></li>
       </ul>
     </li>
@@ -1526,7 +1526,7 @@ However, if you do feel like implementing one yourself. Keep in mind that the pr
     <li><a href="#implementing-mn-fibers">Implementing M:N fibers</a>
       <ul>
         <li><a href="#stack-allocator">Stack allocator</a></li>
-        <li><a href="#syncronization-primitives">Syncronization Primitives</a></li>
+        <li><a href="#synchronization-primitives">Synchronization Primitives</a></li>
         <li><a href="#fiber-local-storage">Fiber Local Storage</a></li>
         <li><a href="#reactor">Reactor</a></li>
       </ul>
